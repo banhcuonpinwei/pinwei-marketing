@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pin Wei · Posting helper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top"><div class="wrap wide"><div class="brand"><a href="../">Pin Wei Marketing</a><span class="sep">/</span><a href="./">Posting</a></div></div></header>
+<main class="wrap wide">
+  <nav class="tabs" id="tabs">
+    <a href="#compose" data-tab="compose">New post</a>
+    <a href="#week" data-tab="week">Groups this week</a>
+    <a href="#d1" data-tab="d1">Check D+1</a>
+    <a href="#d3" data-tab="d3">Check D+3</a>
+    <a href="#dash" data-tab="dash">Dashboard</a>
+  </nav>
+  <div id="error"></div>
+  <section id="t-compose" class="tab-body"><p class="muted">Loading…</p></section>
+  <section id="t-week" class="tab-body" hidden></section>
+  <section id="t-d1" class="tab-body" hidden></section>
+  <section id="t-d3" class="tab-body" hidden></section>
+  <section id="t-dash" class="tab-body" hidden></section>
+  <footer class="foot" id="foot"></footer>
+</main>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="helper.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>
