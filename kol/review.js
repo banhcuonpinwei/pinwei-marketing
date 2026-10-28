@@ -64,7 +64,7 @@
       return '<label>' + CLASS_LABELS[k] + '<select class="rvcls" data-k="' + k + '">' + (v ? '' : '<option value="" selected>not judged</option>') +
         options(CLASS_CHOICES[k], v) + '</select></label>';
     }).join('') + '</div><button type="button" class="alt small-btn" id="rvclass">Save classification</button>' +
-      '<p class="small muted">Change it when the counts or the AI got it wrong, or to judge the tone. Saved as yours: the AI never changes it.</p></div>';
+      '<p class="small muted">Change it when the counts or the AI got it wrong. Tone is optional and not part of the score. Saved as yours: the AI never changes it.</p></div>';
     var approve = '<div class="rvbox"><h4>Approve</h4><div class="rvsel">' +
       '<label>Invitation<select id="rvtype">' + options(cfg.invite_types, 'Barter', function (t) { return t === 'Barter' ? 'Barter (free meal)' : 'Paid'; }) + '</select></label>' +
       '<label>Branch<select id="rvbranch">' + options(cfg.branches, 'Any', function (b) { return b.code === 'Any' ? 'They choose' : b.code; }) + '</select></label></div>' +
@@ -169,12 +169,7 @@
     });
     $('rvclass').addEventListener('click', function () {
       var body = { creator_id: id, reason: '' };
-      var missing = false;
-      Array.prototype.forEach.call(document.querySelectorAll('.rvcls'), function (s) {
-        body[s.getAttribute('data-k')] = s.value;
-        if (!s.value) missing = true;
-      });
-      if (missing) return say('rvmsg', 'Judge the tone too (good, ok or poor) before saving.', 'badc');
+      Array.prototype.forEach.call(document.querySelectorAll('.rvcls'), function (s) { body[s.getAttribute('data-k')] = s.value; });
       act('classifySave', body, this, function (d) {
         rv.msg = '<span class="okc">' + esc(d.message) + ' The score is updated.</span>';
         return K.reload();

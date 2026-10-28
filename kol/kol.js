@@ -313,10 +313,18 @@
       (n ? cl.ad_posts + ' of ' + n + ' recent captions look sponsored.\n' : '') + decidedBy(cl, 'ads'));
     var toneHelp = 'How the posts would sound for a family bánh cuốn shop: good = friendly, warm, honest or funny; ok = neutral; poor = crude, misleading ' +
       'or luxury only.\n';
-    var tone = cl.tone_fit ? hint('tone ' + esc(cl.tone_fit), toneHelp + (cl.by === 'manual' ? 'Set by hand.' : 'The AI\'s judgment: ' + cl.reason))
-      : hint('<span class="muted">tone not judged</span>', toneHelp + 'The counts were clear, so the AI was not asked (it is only asked when they are not). ' +
-        'Judge the tone at review. Until then fit comes from ads alone.\n' + cl.reason);
-    return '<div class="small cls">' + food + ' · ' + hcmc + ' · ' + ads + ' · ' + tone + (cl.by === 'manual' ? ' · by hand' : '') + '</div>';
+    // Tone is not part of the score (2026-10-28): shown only where the AI or a person judged it.
+    var tone = cl.tone_fit ? ' · ' + hint('tone ' + esc(cl.tone_fit), toneHelp + 'Not part of the score.\n' +
+      (cl.by === 'manual' ? 'Set by hand.' : 'The AI\'s judgment: ' + cl.reason)) : '';
+    return '<div class="small cls">' + food + ' · ' + hcmc + ' · ' + ads + tone + (cl.by === 'manual' ? ' · by hand' : '') + '</div>';
+  }
+
+  /**
+   * How a like rate (likes / views) compares: our TikTok creators had a median of 3% (middle half 2.4% to 4.6%) in
+   * October 2026, close to published 2025 figures for small accounts.
+   */
+  function likeLevel(r) {
+    return r < 0.02 ? 'low, under 2%' : r < 0.03 ? 'below average, 2-3%' : r < 0.05 ? 'average, 3-5%' : 'strong, 5% or more';
   }
 
   /** The score, with its parts on hover; the tier and any exclusion explained. */
@@ -328,10 +336,12 @@
     var rate = p.engagement_rate === null || p.engagement_rate === undefined ? '' : ' (' + (c.platform === 'TikTok' ? 'views' : 'likes + comments') +
       ' = ' + pct(p.engagement_rate) + ' of followers; full marks at ' + pct(c.platform === 'TikTok' ? cfg.er_target_tiktok : cfg.er_target_ig) + ')';
     var part = function (label, v, extra) { return label + ': ' + (v === null || v === undefined ? 'no data yet' : v + '/100' + (extra || '')); };
-    var breakdown = 'Score 0-100, the weighted mean of the parts with data (weights: engagement ' + w.engagement + ', growth ' + w.growth +
-      ', size ' + w.size + ', fit ' + w.fit + ').\n' + part('engagement', p.engagement, rate) + '\n' +
+    var likeRate = p.like_rate === null || p.like_rate === undefined ? '' : ' (' + pct(p.like_rate) + ' of viewers liked: ' + likeLevel(p.like_rate) +
+      '; full marks at ' + pct(cfg.like_rate_target) + ')';
+    var breakdown = 'Score 0-100, the weighted mean of the parts with data (weights: like rate ' + w.likes + ', reach ' + w.engagement + ', growth ' +
+      w.growth + ', size ' + w.size + ', few ads ' + w.fit + ').\n' + part('like rate', p.likes, likeRate) + '\n' + part('reach', p.engagement, rate) + '\n' +
       part('growth', p.growth, p.growth_rate_weekly === null || p.growth_rate_weekly === undefined ? '' : ' (' + pct(p.growth_rate_weekly) + ' a week; full marks at ' +
-        pct(cfg.growth_target_weekly) + ')') + '\n' + part('size', p.size, ' (' + c.tier + ')') + '\n' + part('fit', p.fit, ' (from ads and tone)');
+        pct(cfg.growth_target_weekly) + ')') + '\n' + part('size', p.size, ' (' + c.tier + ')') + '\n' + part('few ads', p.fit, '');
     var out = hint('<b>' + c.score + '</b>', breakdown) + ' ' + hint('<span class="muted small">' + esc(c.tier) + '</span>', tierHint);
     if (c.excluded) {
       return out + '<div class="small">' + hint('<span class="badc">' + esc(c.exclude_reason) + '</span>',
@@ -357,7 +367,8 @@
   function keyLine(cfg) {
     var w = cfg.weights || {};
     return '<p class="keyline small muted">Hover (or tap) any underlined word or number to see what it means and the counts behind it. ' +
-      'Score = engagement ' + w.engagement + ' + growth ' + w.growth + ' + size ' + w.size + ' + fit ' + w.fit + ' · nano ' + num(cfg.follower_min) + '-' +
+      'Score = like rate ' + w.likes + ' + reach ' + w.engagement + ' + growth ' + w.growth + ' + size ' + w.size + ' + few ads ' + w.fit + ' · nano ' +
+      num(cfg.follower_min) + '-' +
       num(cfg.nano_max) + ', micro to ' + num(cfg.follower_max) + ' followers · <span class="badc">red</span> = left out, with the reason.</p>';
   }
 
