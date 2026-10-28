@@ -273,12 +273,84 @@
       return (state.platform === 'All' || c.platform === state.platform) && (state.status === 'All' || c.status === state.status) &&
         (!s || c.handle.indexOf(s) >= 0 || c.display_name.toLowerCase().indexOf(s) >= 0 || c.note.toLowerCase().indexOf(s) >= 0);
     });
-    if (state.sort === 'score') {
-      // Best first; excluded creators and those without a score at the end.
-      var rank = function (c) { return c.score === null ? -2 : c.excluded ? -1 + c.score / 1000 : c.score; };
-      list = list.slice().sort(function (a, b) { return rank(b) - rank(a); });
-    }
-    return list;
+    return sortList(list, state.sort);
+  }
+
+  /**
+   * The rates every creator shows, as they are: no points, no score (the user, 2026-10-28: read them like ad metrics).
+   * [key in c.rates, column, what it means].
+   */
+  var RATES = [
+    ['like', 'Like / view', 'Average likes per video divided by average views: the share of viewers who liked it.'],
+    ['comment', 'Comment / view', 'Comments per view: viewers who cared enough to write.'],
+    ['save', 'Save / view', 'Saves per view (TikTok only): viewers keeping the video for later, the nearest thing to "I want to go there".'],
+    ['share', 'Share / view', 'Shares per view (TikTok only): viewers sending it to someone.'],
+    ['view', 'View / follower', 'Average views per video divided by followers: 2x = the videos reach twice their follower count.'],
+  ];
+  var SORTS = [['newest', 'Newest first']].concat(RATES.map(function (r) { return [r[0], 'Highest ' + r[1].toLowerCase()]; }), [['followers', 'Most followers']]);
+
+  function rateText(key, v) {
+    if (v === null || v === undefined) return '-';
+    if (key === 'view') return Math.round(v * 10) / 10 + 'x';
+    var p = v * 100;
+    return (p < 1 ? p.toFixed(2) : p.toFixed(1)) + '%';
+  }
+
+  /** Each rate over every creator that has it: quartiles, the yardstick a cell is read against. Kept per data load. */
+  var stats = { data: null, by: {} };
+  function rateStats() {
+    if (stats.data === state.data) return stats.by;
+    var by = {};
+    RATES.forEach(function (r) {
+      var xs = state.data.creators.map(function (c) { return c.rates ? c.rates[r[0]] : null; })
+        .filter(function (x) { return x !== null && x !== undefined; }).sort(function (a, b) { return a - b; });
+      var q = function (p) { return xs[Math.round(p * (xs.length - 1))]; };
+      by[r[0]] = xs.length ? { n: xs.length, p25: q(0.25), median: q(0.5), p75: q(0.75) } : { n: 0 };
+    });
+    stats = { data: state.data, by: by };
+    return by;
+  }
+
+  /** One rate cell: the value, bold in our top quarter, grey in the bottom quarter, the median and range on hover. */
+  function rateCell(c, r) {
+    var v = c.rates ? c.rates[r[0]] : null;
+    if (v === null || v === undefined) return '<td class="n rt" data-th="' + r[1] + '"><span class="muted">-</span></td>';
+    var st = rateStats()[r[0]];
+    var cls = st.n < 8 ? '' : v >= st.p75 ? 'hi' : v <= st.p25 ? 'lo' : '';
+    var help = r[2] + '\nOur ' + st.n + ' creators: median ' + rateText(r[0], st.median) + ', middle half ' + rateText(r[0], st.p25) + ' to ' +
+      rateText(r[0], st.p75) + '.' + (cls === 'hi' ? '\nThis one is in the top quarter.' : cls === 'lo' ? '\nThis one is in the bottom quarter.' : '');
+    return '<td class="n rt" data-th="' + r[1] + '">' + hint('<span class="' + cls + '">' + rateText(r[0], v) + '</span>', help, 'r') + '</td>';
+  }
+
+  function rateHeads() {
+    return RATES.map(function (r) { return '<th class="n">' + hint(r[1], r[2], 'r') + '</th>'; }).join('');
+  }
+
+  function rateCells(c) {
+    return RATES.map(function (r) { return rateCell(c, r); }).join('');
+  }
+
+  /** Highest first by a rate (or followers); those without it at the end. "newest" keeps the list's order. */
+  function sortList(list, sort) {
+    if (!sort || sort === 'newest') return list;
+    var val = function (c) { var v = sort === 'followers' ? c.followers : c.rates ? c.rates[sort] : null; return v === undefined ? null : v; };
+    return list.slice().sort(function (a, b) {
+      var x = val(a);
+      var y = val(b);
+      return x === null && y === null ? 0 : x === null ? 1 : y === null ? -1 : y - x;
+    });
+  }
+
+  function sortSelect(id, value) {
+    return '<select id="' + id + '" aria-label="Order">' + SORTS.map(function (s) {
+      return '<option value="' + s[0] + '"' + (s[0] === value ? ' selected' : '') + '>' + esc(s[1]) + '</option>';
+    }).join('') + '</select>';
+  }
+
+  /** Why the rules leave a creator out (verified, follower range, not food, not HCMC), in red. */
+  function excludedLine(c) {
+    return c.excluded ? '<div class="small">' + hint('<span class="badc">' + esc(c.exclude_reason) + '</span>',
+      'Left out by the rules (Config): not shown in Review.') + '</div>' : '';
   }
 
   /** A word or number with an explanation shown on hover (or on tap, through focus, on a phone). */
@@ -311,45 +383,8 @@
     var ads = hint('ads ' + esc(cl.ad_density),
       'Share of posts that are paid or sponsored (hợp tác, tài trợ, #ad, discount codes, shop links).\nlow under 20%, medium 20-50%, high over 50%.\n' +
       (n ? cl.ad_posts + ' of ' + n + ' recent captions look sponsored.\n' : '') + decidedBy(cl, 'ads'));
-    var toneHelp = 'How the posts would sound for a family bánh cuốn shop: good = friendly, warm, honest or funny; ok = neutral; poor = crude, misleading ' +
-      'or luxury only.\n';
-    // Tone is not part of the score (2026-10-28): shown only where the AI or a person judged it.
-    var tone = cl.tone_fit ? ' · ' + hint('tone ' + esc(cl.tone_fit), toneHelp + 'Not part of the score.\n' +
-      (cl.by === 'manual' ? 'Set by hand.' : 'The AI\'s judgment: ' + cl.reason)) : '';
-    return '<div class="small cls">' + food + ' · ' + hcmc + ' · ' + ads + tone + (cl.by === 'manual' ? ' · by hand' : '') + '</div>';
-  }
-
-  /**
-   * How a like rate (likes / views) compares: our TikTok creators had a median of 3% (middle half 2.4% to 4.6%) in
-   * October 2026, close to published 2025 figures for small accounts.
-   */
-  function likeLevel(r) {
-    return r < 0.02 ? 'low, under 2%' : r < 0.03 ? 'below average, 2-3%' : r < 0.05 ? 'average, 3-5%' : 'strong, 5% or more';
-  }
-
-  /** The score, with its parts on hover; the tier and any exclusion explained. */
-  function scoreCell(c, cfg) {
-    var w = cfg.weights || {};
-    var tierHint = 'nano ' + num(cfg.follower_min) + '-' + num(cfg.nano_max) + ' followers, micro up to ' + num(cfg.follower_max) + ', out outside that range.';
-    if (c.score === null) return hint('<span class="muted small">needs numbers</span>', 'No follower count yet: open the profile and click PW creator.');
-    var p = c.parts || {};
-    var rate = p.engagement_rate === null || p.engagement_rate === undefined ? '' : ' (' + (c.platform === 'TikTok' ? 'views' : 'likes + comments') +
-      ' = ' + pct(p.engagement_rate) + ' of followers; full marks at ' + pct(c.platform === 'TikTok' ? cfg.er_target_tiktok : cfg.er_target_ig) + ')';
-    var part = function (label, v, extra) { return label + ': ' + (v === null || v === undefined ? 'no data yet' : v + '/100' + (extra || '')); };
-    var likeRate = p.like_rate === null || p.like_rate === undefined ? '' : ' (' + pct(p.like_rate) + ' of viewers liked: ' + likeLevel(p.like_rate) +
-      '; full marks at ' + pct(cfg.like_rate_target) + ')';
-    var breakdown = 'Score 0-100, the weighted mean of the parts with data (weights: like rate ' + w.likes + ', reach ' + w.engagement + ', growth ' +
-      w.growth + ', size ' + w.size + ', few ads ' + w.fit + ').\n' + part('like rate', p.likes, likeRate) + '\n' + part('reach', p.engagement, rate) + '\n' +
-      part('growth', p.growth, p.growth_rate_weekly === null || p.growth_rate_weekly === undefined ? '' : ' (' + pct(p.growth_rate_weekly) + ' a week; full marks at ' +
-        pct(cfg.growth_target_weekly) + ')') + '\n' + part('size', p.size, ' (' + c.tier + ')') + '\n' + part('few ads', p.fit, '');
-    var out = hint('<b>' + c.score + '</b>', breakdown) + ' ' + hint('<span class="muted small">' + esc(c.tier) + '</span>', tierHint);
-    if (c.excluded) {
-      return out + '<div class="small">' + hint('<span class="badc">' + esc(c.exclude_reason) + '</span>',
-        'Left out of the shortlist for this reason. The score is kept so you can compare.') + '</div>';
-    }
-    return out + (c.missing ? '<div class="small">' + hint('<span class="muted">no ' + esc(c.missing) + ' yet</span>',
-      c.missing.indexOf('growth') >= 0 ? 'Growth needs a second capture at least 7 days after the first: open the profile again next week and click PW creator.'
-        : 'These parts have no data yet, so the score uses the others.') + '</div>' : '');
+    // Tone is left out (the user, 2026-10-28): a tone that does not land shows in the rates anyway.
+    return '<div class="small cls">' + food + ' · ' + hcmc + ' · ' + ads + (cl.by === 'manual' ? ' · by hand' : '') + '</div>';
   }
 
   /** "Every morning at 07:00: last run today 07:04, 3 classified." or how to turn it on. */
@@ -365,11 +400,9 @@
 
   /** One line under the list instead of a glossary: the details are in the hints. */
   function keyLine(cfg) {
-    var w = cfg.weights || {};
-    return '<p class="keyline small muted">Hover (or tap) any underlined word or number to see what it means and the counts behind it. ' +
-      'Score = like rate ' + w.likes + ' + reach ' + w.engagement + ' + growth ' + w.growth + ' + size ' + w.size + ' + few ads ' + w.fit + ' · nano ' +
-      num(cfg.follower_min) + '-' +
-      num(cfg.nano_max) + ', micro to ' + num(cfg.follower_max) + ' followers · <span class="badc">red</span> = left out, with the reason.</p>';
+    return '<p class="keyline small muted">Hover (or tap) any underlined word or number to see what it means. The rates are as they are, from the ' +
+      'newest saved numbers (TikTok: the videos of the last 30 days): <b>bold</b> = top quarter of our creators, grey = bottom quarter. ' +
+      'Creators from ' + num(cfg.follower_min) + ' to ' + num(cfg.follower_max) + ' followers · <span class="badc">red</span> = left out, with the reason.</p>';
   }
 
   function options(list, value, allLabel) {
@@ -378,11 +411,9 @@
     }).join('');
   }
 
-  /** Classified creators not left out, best score first: what the Review tab shows. */
+  /** Classified creators not left out: what the Review tab shows (it sorts them itself). */
   function reviewQueue() {
-    var rank = function (c) { return c.score === null ? -1 : c.score; };
-    return state.data.creators.filter(function (c) { return c.status === 'Classified' && !c.excluded; })
-      .sort(function (a, b) { return rank(b) - rank(a); });
+    return state.data.creators.filter(function (c) { return c.status === 'Classified' && !c.excluded; });
   }
 
   function openOutreach() {
@@ -434,9 +465,7 @@
     out.push('<div class="qbar cbar"><input type="search" id="csearch" placeholder="Find a creator" value="' + esc(state.search) + '">' +
       '<select id="cplatform" aria-label="Platform">' + options(d.platforms, state.platform, 'All platforms') + '</select>' +
       '<select id="cstatus" aria-label="Status">' + options(d.statuses, state.status, 'All statuses') + '</select>' +
-      '<select id="csort" aria-label="Order"><option value="newest"' + (state.sort === 'newest' ? ' selected' : '') + '>Newest first</option>' +
-      '<option value="score"' + (state.sort === 'score' ? ' selected' : '') + '>Best score first</option></select>' +
-      whoBox() + '</div>');
+      sortSelect('csort', state.sort) + whoBox() + '</div>');
     out.push('<details class="card addcreator"' + (d.creators.length && !state.addOpen ? '' : ' open') + '><summary>Add a creator</summary><div class="agrid">' +
       '<div><label for="aurl">Instagram or TikTok profile link</label><input type="url" id="aurl" placeholder="https://www.instagram.com/… or https://www.tiktok.com/@…"></div>' +
       '<div><label for="afollowers">Followers (optional)</label><input type="text" id="afollowers" placeholder="e.g. 12,3K"></div>' +
@@ -460,21 +489,18 @@
     } else if (!shown.length) {
       out.push('<p class="note">No creator matches.</p>');
     } else {
-      out.push('<table class="list ctable"><thead><tr><th>Creator</th><th>' + hint('Score', 'Fit for a Pin Wei invitation, 0-100. Hover a score to see its parts.') + '</th>' +
-        '<th class="n">' + hint('Followers', 'From the latest capture of the profile.', 'r') + '</th>' +
-        '<th>' + hint('Numbers saved', 'Days with a capture of the numbers (one a day). Capture again a week later to measure growth.') + '</th>' +
-        '<th>' + hint('Status', 'New: just added. Classified: the counts and the AI (or a person) classified it; it waits in Review. ' +
+      out.push('<table class="list ctable"><thead><tr><th>Creator</th><th class="n">' + hint('Followers', 'From the latest capture of the profile.', 'r') + '</th>' +
+        rateHeads() + '<th>' + hint('Status', 'New: just added. Classified: the counts and the AI (or a person) classified it; it waits in Review. ' +
           'Approved: invited (see Outreach). Rejected: left out at review, with the reason.', 'r') + '</th><th>Note</th></tr></thead><tbody>' +
         shown.map(function (c) {
           return '<tr><td class="who" data-th="Creator"><a href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a>' +
             (c.display_name ? ' <span class="muted">' + esc(c.display_name) + '</span>' : '') + (c.verified ? ' <span class="tag">Verified</span>' : '') +
-            '<div class="muted small">' + esc(c.platform) + ' · ' + esc(c.source) + ' · added ' + esc(ago(c.added_at)) + (c.added_by ? ' by ' + esc(c.added_by) : '') + '</div>' +
-            classLine(c.classification) + '</td>' +
-            '<td class="sc" data-th="Score">' + scoreCell(c, d.score_config) + '</td>' +
-            '<td class="n" data-th="Followers">' + PW.members(c.followers) + '</td>' +
-            '<td data-th="Numbers saved">' + (c.snapshots ? c.snapshots + (c.snapshots === 1 ? ' day' : ' days') + ', last ' + esc(c.last_snapshot) : '<span class="muted">none yet</span>') +
-            (c.recapture_due ? '<div class="small">' + hint('<span class="warnc">capture again</span>', 'The last capture is a week old or more. Open the profile and click ' +
-              'PW creator to save new numbers and captions: growth is measured between captures a week apart.') + '</div>' : '') + '</td>' +
+            '<div class="muted small">' + esc(c.platform) + ' · ' + esc(c.source) + ' · added ' + esc(ago(c.added_at)) + (c.added_by ? ' by ' + esc(c.added_by) : '') +
+            ' · ' + (c.snapshots ? hint('numbers ' + esc(c.last_snapshot), c.snapshots + (c.snapshots === 1 ? ' day' : ' days') + ' with saved numbers (one a day).') :
+              'no numbers yet') + (c.recapture_due ? ' · ' + hint('<span class="warnc">capture again</span>', 'The last capture is a week old or more. Open the profile ' +
+              'and click PW creator to save new numbers and captions.') : '') + '</div>' +
+            classLine(c.classification) + excludedLine(c) + '</td>' +
+            '<td class="n" data-th="Followers">' + PW.members(c.followers) + '</td>' + rateCells(c) +
             '<td class="stc" data-th="Status"><span class="st st-' + esc(c.status.toLowerCase()) + '">' + esc(c.status) + '</span>' +
             (c.status === 'Rejected' ? '<div class="small muted">' + esc(c.reject_reason) + '</div><button type="button" class="link-btn small reopen" data-id="' +
               esc(c.creator_id) + '">Back to review</button>' : '') + '</td>' +
@@ -579,7 +605,8 @@
     }).catch(showError);
   }
 
-  window.KOL = { state: state, hint: hint, classLine: classLine, scoreCell: scoreCell, ago: ago, num: num, reviewQueue: reviewQueue,
+  window.KOL = { state: state, hint: hint, classLine: classLine, rateHeads: rateHeads, rateCells: rateCells, rateText: rateText,
+    sortList: sortList, sortSelect: sortSelect, excludedLine: excludedLine, ago: ago, num: num, reviewQueue: reviewQueue,
     openOutreach: openOutreach, reload: reload, whoBox: whoBox, showError: showError };
   load();
 })();

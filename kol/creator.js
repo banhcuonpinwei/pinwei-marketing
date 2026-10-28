@@ -74,7 +74,8 @@
         '(the scrolling was stopped, or the page loaded no more). To read the whole month, click PW creator on the profile again.</p>');
     }
     out.push('<div class="cgrid">' + field('avg_likes', 'Avg likes', p.avg_likes || '', 'number') + field('avg_comments', 'Avg comments', p.avg_comments || '', 'number') +
-      field('avg_views', 'Avg views', p.avg_views || '', 'number') + '<div></div></div>');
+      field('avg_views', 'Avg views', p.avg_views || '', 'number') + field('avg_saves', 'Avg saves', p.avg_saves || '', 'number') +
+      field('avg_shares', 'Avg shares', p.avg_shares || '', 'number') + '</div>');
     if (captions.length) {
       out.push('<details><summary class="small">' + captions.length + ' captions (kept for the classification step)</summary><ol class="caps">' +
         captions.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ol></details>');
@@ -113,7 +114,8 @@
     PW.api('captureSave', {
       platform: platform, handle: handle, display_name: v('name'), followers: v('followers'), following: v('following'), posts_count: v('posts'),
       likes_total: v('likes_total'), bio: v('bio'), external_url: v('ext'), category: v('cat'), account_type: v('type'), verified: $('verified').checked,
-      avg_likes: v('avg_likes'), avg_comments: v('avg_comments'), avg_views: v('avg_views'), posts_counted: p.n || '', captions: captions,
+      avg_likes: v('avg_likes'), avg_comments: v('avg_comments'), avg_views: v('avg_views'), avg_saves: v('avg_saves'), avg_shares: v('avg_shares'),
+      posts_counted: p.n || '', captions: captions,
       captions_window: p.from ? (p.n + ' posts, ' + p.from + ' to ' + p.to + ', ' + (p.win || 0) + ' in the last ' + (p.wd || 30) + ' days, ' + (p.loaded || 0) + ' loaded') : '',
       note: v('note'), saved_by: v('who'),
     }).then(function (r) {

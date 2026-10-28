@@ -11,11 +11,11 @@
   var esc = PW.esc;
   var $ = function (id) { return document.getElementById(id); };
   var PAGE = 15;
-  var rv = { open: '', details: {}, msg: '', sum: '', page: 0, platform: 'All', ostatus: 'Open', oopen: '', omsg: '' };
+  var rv = { open: '', details: {}, msg: '', sum: '', page: 0, platform: 'All', sort: 'like', ostatus: 'Open', oopen: '', omsg: '' };
   var out = rv; // one state object for both tabs
-  var CLASS_CHOICES = { is_food_reviewer: ['yes', 'unsure', 'no'], based_in_hcmc: ['yes', 'unsure', 'no'], ad_density: ['low', 'medium', 'high'],
-    tone_fit: ['good', 'ok', 'poor'] };
-  var CLASS_LABELS = { is_food_reviewer: 'Food', based_in_hcmc: 'HCMC', ad_density: 'Ads', tone_fit: 'Tone' };
+  // Tone is left out (the user, 2026-10-28): a tone that does not land shows in the rates anyway.
+  var CLASS_CHOICES = { is_food_reviewer: ['yes', 'unsure', 'no'], based_in_hcmc: ['yes', 'unsure', 'no'], ad_density: ['low', 'medium', 'high'] };
+  var CLASS_LABELS = { is_food_reviewer: 'Food', based_in_hcmc: 'HCMC', ad_density: 'Ads' };
 
   function who() {
     var v = $('cwho') ? $('cwho').value.trim() : '';
@@ -37,7 +37,7 @@
   // ------------------------------------------------------------ Review
 
   function reviewList() {
-    return K.reviewQueue().filter(function (c) { return rv.platform === 'All' || c.platform === rv.platform; });
+    return K.sortList(K.reviewQueue().filter(function (c) { return rv.platform === 'All' || c.platform === rv.platform; }), rv.sort);
   }
 
   function detailHtml(c) {
@@ -48,7 +48,9 @@
     var cl = c.classification || {};
     var snaps = d.snapshots.map(function (s) {
       return esc(s.date) + ': ' + PW.members(s.followers) + ' followers' + (s.avg_views !== null ? ', ' + PW.members(s.avg_views) + ' avg views' : '') +
-        (s.avg_likes !== null ? ', ' + PW.members(s.avg_likes) + ' avg likes' : '');
+        (s.avg_likes !== null ? ', ' + PW.members(s.avg_likes) + ' avg likes' : '') +
+        (s.avg_comments !== null ? ', ' + PW.members(s.avg_comments) + ' avg comments' : '') + (s.avg_saves !== null && s.avg_saves !== undefined ? ', ' +
+        PW.members(s.avg_saves) + ' avg saves' : '') + (s.avg_shares !== null && s.avg_shares !== undefined ? ', ' + PW.members(s.avg_shares) + ' avg shares' : '');
     });
     var info = '<div class="rvinfo">' +
       (d.bio ? '<p class="bio">' + esc(d.bio) + '</p>' : '<p class="muted small">No bio.</p>') +
@@ -64,7 +66,7 @@
       return '<label>' + CLASS_LABELS[k] + '<select class="rvcls" data-k="' + k + '">' + (v ? '' : '<option value="" selected>not judged</option>') +
         options(CLASS_CHOICES[k], v) + '</select></label>';
     }).join('') + '</div><button type="button" class="alt small-btn" id="rvclass">Save classification</button>' +
-      '<p class="small muted">Change it when the counts or the AI got it wrong. Tone is optional and not part of the score. Saved as yours: the AI never changes it.</p></div>';
+      '<p class="small muted">Change it when the counts or the AI got it wrong. Saved as yours: the AI never changes it.</p></div>';
     var approve = '<div class="rvbox"><h4>Approve</h4><div class="rvsel">' +
       '<label>Invitation<select id="rvtype">' + options(cfg.invite_types, 'Barter', function (t) { return t === 'Barter' ? 'Barter (free meal)' : 'Paid'; }) + '</select></label>' +
       '<label>Branch<select id="rvbranch">' + options(cfg.branches, 'Any', function (b) { return b.code === 'Any' ? 'They choose' : b.code; }) + '</select></label></div>' +
@@ -84,23 +86,23 @@
     var shown = all.slice(rv.page * PAGE, (rv.page + 1) * PAGE);
     var left = d.creators.filter(function (c) { return c.status === 'Classified' && c.excluded; }).length;
     var out = ['<div class="qbar cbar"><select id="rvplatform" aria-label="Platform"><option value="All">All platforms</option>' +
-      options(d.platforms, rv.platform) + '</select>' + K.whoBox() + '</div>'];
-    out.push('<p class="qsum">' + all.length + ' to review, best score first' + (left ? ' · ' + K.hint('<span class="muted">' + left + ' left out by the rules</span>',
-      'Classified creators the score leaves out (verified, outside the follower range, not food, not in HCMC). They stay in Creators with the reason.') : '') +
+      options(d.platforms, rv.platform) + '</select>' + K.sortSelect('rvsort', rv.sort) + K.whoBox() + '</div>'];
+    out.push('<p class="qsum">' + all.length + ' to review' + (left ? ' · ' + K.hint('<span class="muted">' + left + ' left out by the rules</span>',
+      'Classified creators the rules leave out (verified, outside the follower range, not food, not in HCMC). They stay in Creators with the reason.') : '') +
       ' <span class="small" id="rvsum">' + rv.sum + '</span></p>');
     if (!all.length) {
       out.push('<p class="note">Nothing to review. New creators come from the Apify search and the PW creator bookmark; the morning run classifies them.</p>');
     } else {
-      out.push('<table class="list ctable rvtable"><thead><tr><th>Creator</th><th>' + K.hint('Score', 'Fit for a Pin Wei invitation, 0-100. Hover a score to see its parts.') +
-        '</th><th class="n">Followers</th><th></th></tr></thead><tbody>' + shown.map(function (c) {
-        var open = rv.open === c.creator_id;
-        return '<tr' + (open ? ' class="on"' : '') + '><td class="who" data-th="Creator"><a href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a>' +
-          (c.display_name ? ' <span class="muted">' + esc(c.display_name) + '</span>' : '') +
-          '<div class="muted small">' + esc(c.platform) + ' · ' + esc(c.source) + ' · added ' + esc(K.ago(c.added_at)) + '</div>' + K.classLine(c.classification) + '</td>' +
-          '<td class="sc" data-th="Score">' + K.scoreCell(c, d.score_config) + '</td><td class="n" data-th="Followers">' + PW.members(c.followers) + '</td>' +
-          '<td class="act"><button type="button" class="alt small-btn rvopen" data-id="' + esc(c.creator_id) + '">' + (open ? 'Close' : 'Review') + '</button></td></tr>' +
-          (open ? '<tr class="rvdetail"><td colspan="4">' + detailHtml(c) + '</td></tr>' : '');
-      }).join('') + '</tbody></table>');
+      out.push('<table class="list ctable rvtable"><thead><tr><th>Creator</th><th class="n">Followers</th>' + K.rateHeads() + '<th></th></tr></thead><tbody>' +
+        shown.map(function (c) {
+          var open = rv.open === c.creator_id;
+          return '<tr' + (open ? ' class="on"' : '') + '><td class="who" data-th="Creator"><a href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a>' +
+            (c.display_name ? ' <span class="muted">' + esc(c.display_name) + '</span>' : '') +
+            '<div class="muted small">' + esc(c.platform) + ' · ' + esc(c.source) + ' · added ' + esc(K.ago(c.added_at)) + '</div>' + K.classLine(c.classification) + '</td>' +
+            '<td class="n" data-th="Followers">' + PW.members(c.followers) + '</td>' + K.rateCells(c) +
+            '<td class="act"><button type="button" class="alt small-btn rvopen" data-id="' + esc(c.creator_id) + '">' + (open ? 'Close' : 'Review') + '</button></td></tr>' +
+            (open ? '<tr class="rvdetail"><td colspan="8">' + detailHtml(c) + '</td></tr>' : '');
+        }).join('') + '</tbody></table>');
       if (pages > 1) {
         out.push('<div class="pager"><button type="button" class="alt" id="rvprev"' + (rv.page === 0 ? ' disabled' : '') + '>Previous</button>' +
           '<span class="muted">Page ' + (rv.page + 1) + ' of ' + pages + '</span><button type="button" class="alt" id="rvnext"' + (rv.page >= pages - 1 ? ' disabled' : '') + '>Next</button></div>');
@@ -135,6 +137,7 @@
   function bindReview() {
     PW.remember('pwkol_by', $('cwho'));
     $('rvplatform').addEventListener('change', function () { rv.platform = this.value; rv.page = 0; K.renderReview(); });
+    $('rvsort').addEventListener('change', function () { rv.sort = this.value; rv.page = 0; K.renderReview(); });
     if ($('rvprev')) $('rvprev').addEventListener('click', function () { rv.page--; K.renderReview(); });
     if ($('rvnext')) $('rvnext').addEventListener('click', function () { rv.page++; K.renderReview(); });
     Array.prototype.forEach.call(document.querySelectorAll('.rvopen'), function (b) {
@@ -168,7 +171,7 @@
       });
     });
     $('rvclass').addEventListener('click', function () {
-      var body = { creator_id: id, reason: '' };
+      var body = { creator_id: id, reason: '', tone_fit: '' };
       Array.prototype.forEach.call(document.querySelectorAll('.rvcls'), function (s) { body[s.getAttribute('data-k')] = s.value; });
       act('classifySave', body, this, function (d) {
         rv.msg = '<span class="okc">' + esc(d.message) + ' The score is updated.</span>';

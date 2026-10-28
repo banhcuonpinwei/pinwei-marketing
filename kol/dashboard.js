@@ -38,11 +38,11 @@
   }
 
   function todo(t) {
-    var review = t.review.top.map(function (c) { return { handle: c.handle, profile_url: c.profile_url, score: c.score }; });
+    var review = t.review.top.map(function (c) { return { handle: c.handle, profile_url: c.profile_url, like_rate: c.like_rate }; });
     var rows = [
-      t.review.n ? '<li class="kdo"><div class="kdohead"><b>Review creators</b> <span class="cnt">' + t.review.n + '</span> <span class="small muted">best score first</span>' +
+      t.review.n ? '<li class="kdo"><div class="kdohead"><b>Review creators</b> <span class="cnt">' + t.review.n + '</span> <span class="small muted">highest like / view first</span>' +
         ' <a class="small" href="#review">Open review</a></div><div class="small">' + review.map(function (c) {
-          return who(c) + (c.score !== null ? ' <span class="muted">' + c.score + '</span>' : '');
+          return who(c) + (c.like_rate !== null ? ' <span class="muted">' + K.rateText('like', c.like_rate) + '</span>' : '');
         }).join(' · ') + (t.review.n > review.length ? ' · and ' + (t.review.n - review.length) + ' more' : '') + '</div></li>' : '',
       task('Send invitations', t.send, function (o) { return who(o) + ' <span class="muted">approved ' + days(o.days) + '</span>'; }, 'outreach',
         'written, not sent yet'),
@@ -89,7 +89,7 @@
   }
 
   function pool(p, rejected) {
-    return '<p class="small"><b>' + p.ready + '</b> ' + K.hint('ready to invite', 'Food creators in HCMC with a score, not left out by the rules, never invited or rejected.') +
+    return '<p class="small"><b>' + p.ready + '</b> ' + K.hint('ready to invite', 'Food creators in HCMC with numbers, not left out by the rules, never invited or rejected.') +
       ' (' + p.nano + ' nano, ' + p.micro + ' micro; ' + p.with_growth + ' with growth measured) · <b>' + p.new_7d + '</b> found in the last 7 days · <b>' + p.waiting_profile +
       '</b> ' + K.hint('waiting for their profile', 'New creators the PW runner has not read yet (it reads up to 30 each weekday at 10:00), so not classified yet.') + '</p>' +
       (rejected.length ? '<div class="scroll-x"><table class="list kdtable"><thead><tr><th>Why creators were rejected</th><th class="n">Creators</th></tr></thead><tbody>' +
