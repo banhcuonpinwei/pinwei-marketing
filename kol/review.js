@@ -231,7 +231,9 @@
       '<input type="text" id="orcost" inputmode="numeric" placeholder="e.g. 250000" value="' + numVal(o.cost_vnd) + '"></label>' +
       '<label class="w2">Note<input type="text" id="ornote" maxlength="500" value="' + esc(o.note) + '"></label></div>' +
       '<div class="row">' + (sending ? '<button type="button" id="orsent">Mark as sent</button>' : '') +
-      '<button type="button" class="' + (sending ? 'alt' : '') + '" id="orsave">Save</button></div>' +
+      '<button type="button" class="' + (sending ? 'alt' : '') + '" id="orsave">Save</button>' +
+      (sending ? K.hint('<button type="button" class="link-btn" id="orundo">Undo approval</button>', 'Approved by mistake? Deletes this invitation (it was not sent) and ' +
+        'puts @' + o.handle + ' back in Review, so you can approve again or reject.') : '') + '</div>' +
       '<p class="small" id="ormsg">' + out.omsg + '</p></div></div>';
     return '<div class="rvgrid">' + text + form + '</div>';
   }
@@ -310,5 +312,28 @@
     };
     $('orsave').addEventListener('click', function () { save(this); });
     if ($('orsent')) $('orsent').addEventListener('click', function () { save(this, { status: 'Contacted' }); });
+    if ($('orundo')) {
+      $('orundo').addEventListener('click', function () {
+        var b = this;
+        if (b.getAttribute('data-armed') !== '1') {
+          b.setAttribute('data-armed', '1');
+          b.textContent = 'Sure? Delete the invitation';
+          return;
+        }
+        var name = who();
+        if (!name) return say('ormsg', 'Type your name in Saved by (above the list) first.', 'badc');
+        b.disabled = true;
+        say('ormsg', 'Undoing…');
+        PW.api('outreachUndo', { outreach_id: id, saved_by: name }).then(function (r) {
+          out.oopen = '';
+          out.omsg = '';
+          rv.sum = '<span class="okc">' + esc(r.data.message) + '</span>';
+          return K.reload(function () { location.hash = 'review'; });
+        }).catch(function (err) {
+          b.disabled = false;
+          say('ormsg', err.message, 'badc');
+        });
+      });
+    }
   }
 })();
