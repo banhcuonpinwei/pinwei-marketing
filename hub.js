@@ -1,6 +1,7 @@
 /*
  * The main page: says whether Posting and KOL were opened on this computer (their keys are in this origin's
- * localStorage) and offers both bookmarks, built the same way as each part's install page.
+ * localStorage), offers both bookmarks, built the same way as each part's install page, and an access link
+ * (#pk=<Posting key>&kk=<KOL key>) that sets up another computer in one click. Keys only ever travel after #.
  */
 (function () {
   'use strict';
@@ -11,10 +12,10 @@
   var here = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
 
   var PARTS = [
-    { id: 'posting', dir: 'posting/', store: 'pw_k', name: 'PW capture', form: 'capture.html', part: 'Posting',
+    { id: 'posting', dir: 'posting/', store: 'pw_k', param: 'pk', name: 'PW capture', form: 'capture.html', part: 'Posting',
       menu: 'Pin Wei Posting &gt; Open posting helper', install: 'install.html',
       what: 'Group post numbers', steps: ['Open the group post on Facebook (click the post\'s time).', 'Click <b>PW capture</b>: a tab opens with the reactions and comments filled in.', 'Check, pick the status, Save.'] },
-    { id: 'kol', dir: 'kol/', store: 'pwkol_k', name: 'PW creator', form: 'creator.html', part: 'KOL',
+    { id: 'kol', dir: 'kol/', store: 'pwkol_k', param: 'kk', name: 'PW creator', form: 'creator.html', part: 'KOL',
       menu: 'Pin Wei KOL &gt; Open KOL site', install: 'install.html',
       what: 'Creator profiles', steps: ['Open a creator\'s Instagram or TikTok profile.', 'Click <b>PW creator</b>: a tab opens with the followers and recent posts filled in.', 'Check and Save.'] },
   ];
@@ -76,6 +77,51 @@
       });
     });
   }
+
+  /** An access link: keep its keys on this computer, then take them out of the address bar. */
+  function takeAccessLink() {
+    var got = [];
+    String(location.hash || '').replace(/^#/, '').split('&').forEach(function (pair) {
+      var i = pair.indexOf('=');
+      if (i < 0) return;
+      var name = pair.slice(0, i);
+      var value = '';
+      try { value = decodeURIComponent(pair.slice(i + 1)); } catch (e) { return; }
+      PARTS.forEach(function (part) {
+        if (name !== part.param || !/^[A-Za-z0-9_-]{8,200}$/.test(value)) return;
+        try { localStorage.setItem(part.store, value); got.push(part.part); } catch (e) { /* private window: nothing kept */ }
+      });
+    });
+    if (!location.hash) return;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* old browser: the hash stays */ }
+    var note = $('notice');
+    note.hidden = false;
+    if (got.length) {
+      note.className = 'notice ok';
+      note.textContent = 'Access saved on this computer: ' + got.join(' and ') + '. Open them below.';
+    } else {
+      note.className = 'notice bad';
+      note.textContent = 'This link did not give access here (it is incomplete, or this is a private window). Ask for the link again.';
+    }
+  }
+
+  /** The Share access card: a link with the keys this computer has. */
+  function renderShare() {
+    var have = PARTS.filter(function (part) { return keyOf(part.store); });
+    if (!have.length) return;
+    $('share').hidden = false;
+    var link = here + '#' + have.map(function (part) { return part.param + '=' + encodeURIComponent(keyOf(part.store)); }).join('&');
+    $('share-what').textContent = 'The link opens: ' + have.map(function (part) { return part.part; }).join(' and ') +
+      (have.length < PARTS.length ? ' (only what this computer has).' : '.');
+    $('share-copy').addEventListener('click', function () {
+      copy(link, function (ok) {
+        $('share-note').textContent = ok ? 'Copied. Paste it in a private message.' : 'Could not copy here: try again in Chrome.';
+      });
+    });
+  }
+
+  takeAccessLink();
+  renderShare();
 
   PARTS.forEach(function (part) {
     var on = !!keyOf(part.store);

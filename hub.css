@@ -65,6 +65,16 @@ button.alt:hover { background: #f1f2f8; }
 .mark-card a.link { color: var(--navy); font-weight: 600; }
 .end { margin: 44px 0 32px; padding-top: 16px; border-top: 1px solid var(--line); }
 
+/* An access link was just opened: what it did. */
+.notice { margin: 0 0 20px; padding: 10px 14px; border-radius: 10px; font-weight: 600; max-width: 680px; }
+.notice.ok { background: var(--ok-bg); color: var(--ok); }
+.notice.bad { background: #fde8eb; color: #c3142a; }
+.share { margin-top: 44px; }
+.share .head { margin-bottom: 14px; max-width: 680px; }
+.share-card { padding: 20px 22px; border-radius: 14px; background: rgba(255, 255, 255, .7); border: 1px solid var(--line); max-width: 680px; }
+.share-card button { margin: 0; }
+code { font-size: 13px; background: #eef0f7; border-radius: 4px; padding: 1px 5px; }
+
 @media (max-width: 760px) {
   .apps, .marks .grid { grid-template-columns: 1fr; }
   .hero { padding: 36px 0 20px; }

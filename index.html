@@ -20,6 +20,8 @@
     <p class="lead">Posting and creator outreach for the Pin Wei branches, in one place. People decide and send; the tools gather, count and remind.</p>
   </section>
 
+  <p class="notice" id="notice" hidden></p>
+
   <section class="apps">
     <article class="app">
       <p class="kicker">Posting</p>
@@ -51,6 +53,18 @@
     <div class="grid">
       <article class="mark-card" id="bm-posting"><p class="muted">Loading…</p></article>
       <article class="mark-card" id="bm-kol"><p class="muted">Loading…</p></article>
+    </div>
+  </section>
+
+  <section class="share" id="share" hidden>
+    <div class="head">
+      <h2>Share access</h2>
+      <p class="muted">One link that opens Posting and KOL on another computer, without the spreadsheets. Whoever opens it can do everything you can, so send it to one person, privately (not in a group chat).</p>
+    </div>
+    <div class="share-card">
+      <div class="row"><button type="button" id="share-copy">Copy access link</button><span class="muted" id="share-note"></span></div>
+      <p class="muted" id="share-what"></p>
+      <p class="muted">The other person opens the link once; their browser then remembers it. To take access back from everyone, change <code>WEBAPP_TOKEN</code> in that spreadsheet's Script Properties.</p>
     </div>
   </section>
 
