@@ -1,5 +1,6 @@
 /*
- * The posting helper: New post (composer), Groups this week (copy-and-open queue), Check D+1, Check D+3.
+ * The posting helper: New post (composer), Groups this week (copy-and-open queue), Check D+1, Check D+3, Dashboard,
+ * Content plan (every post by week; AI suggestions come there later).
  * One API call ("bootstrap") loads every tab; switching tabs never reloads. The composer keeps what you
  * typed when its data is refreshed.
  */
@@ -7,7 +8,7 @@
   'use strict';
   var esc = PW.esc;
   var $ = function (id) { return document.getElementById(id); };
-  var TABS = ['compose', 'week', 'd1', 'd3', 'dash'];
+  var TABS = ['compose', 'week', 'd1', 'd3', 'dash', 'plan'];
   var state = { data: null, editing: null, img: null, removeImage: false, armed: null, queuePlan: '', composeBuilt: false };
 
   // ------------------------------------------------------------ frame
@@ -54,6 +55,7 @@
       renderWeek();
       renderD1();
       renderD3();
+      renderPlan();
     }, showError);
   }
 
@@ -279,6 +281,43 @@
     });
   }
 
+  // ------------------------------------------------------------ Content plan
+
+  var CHANNEL_NAMES = { page: 'Page', ig: 'IG', group: 'Groups' };
+
+  /** Every post by week, newest first; Open loads it in New post. The AI suggestions card is a placeholder. */
+  function renderPlan() {
+    var d = state.data;
+    var list = d.content_plan || [];
+    var out = ['<p class="muted">What is posted, week by week. Every post written in New post lands here.</p>',
+      '<div class="card ai-card"><div class="row ai-head"><b>AI suggestions</b><span class="tag">Coming later</span></div>' +
+      '<p class="muted">Later, AI will read the Dashboard numbers and the past posts and suggest what to post next week: ' +
+      'topic, branch, channels and a first text. You pick one, it opens in New post, and you edit and post it as usual. ' +
+      'Nothing is suggested yet.</p></div>'];
+    if (!list.length) {
+      out.push('<p class="muted">No posts yet. Write one in New post.</p>');
+    } else {
+      out.push('<table class="list ptable"><thead><tr><th>Week</th><th>Post</th><th>Channels</th><th>Status</th><th></th></tr></thead><tbody>' +
+        list.map(function (x, i) {
+          var chans = x.channels.map(function (c) { return CHANNEL_NAMES[c] || c; }).join(', ') || '-';
+          return '<tr><td data-th="Week" class="nowrap">' + esc(x.week || '-') + (x.week === d.week ? ' <span class="muted small">this week</span>' : '') + '</td>' +
+            '<td data-th="Post"><b>' + esc(x.topic || x.plan_id) + '</b><div class="muted small">' + esc(x.plan_id) + ' · ' + esc(x.branch) +
+            (x.created_by ? ' · by ' + esc(x.created_by) : '') + '</div></td>' +
+            '<td data-th="Channels">' + esc(chans) + '</td>' +
+            '<td data-th="Status"><span class="tag st-' + esc(String(x.status).toLowerCase()) + '">' + esc(x.status) + '</span></td>' +
+            '<td class="nowrap"><a href="#compose" data-plan-open="' + i + '">Open</a></td></tr>';
+        }).join('') + '</tbody></table>');
+    }
+    $('t-plan').innerHTML = out.join('');
+    Array.prototype.forEach.call($('t-plan').querySelectorAll('a[data-plan-open]'), function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        edit(list[Number(a.getAttribute('data-plan-open'))]);
+        location.hash = '#compose';
+      });
+    });
+  }
+
   // ------------------------------------------------------------ Groups this week
 
   var QUEUE_PAGE = 10;
@@ -318,7 +357,7 @@
     var shown = list.slice(queue.page * QUEUE_PAGE, (queue.page + 1) * QUEUE_PAGE);
     var out = [];
     if (!q.plans.length) {
-      out.push('<p class="note warn">No post for groups this week yet. Write one in New post and tick Facebook groups.</p>');
+      out.push('<p class="note warn">No post for groups this week yet. <a href="#compose" id="qwrite">Write one in New post</a> and tick Facebook groups.</p>');
     } else {
       out.push('<div class="plans">' + q.plans.map(function (x) {
         return '<a href="#" data-plan="' + esc(x.plan_id) + '" class="' + (x.plan_id === q.plan_id ? 'on' : '') + '">' + esc(x.label) + '</a>';
@@ -336,7 +375,8 @@
     out.push('<p class="qsum"><b>' + (q.groups.length - doneCount) + '</b> of ' + q.groups.length + ' groups left this week' +
       (doneCount ? ' · ' + doneCount + ' saved <a href="#" id="qdone">' + (queue.showDone ? 'hide them' : 'show them') + '</a>' : '') +
       (q.photo_url ? ' · <a href="' + esc(q.photo_url) + '" target="_blank" rel="noopener">Download photo</a>' : '') + '</p>');
-    out.push(queue.editing
+    // The text belongs to a post: with none this week there is nothing to edit (saving it had nowhere to go).
+    if (q.plan_id) out.push(queue.editing
       ? '<div class="card qtext"><label for="qtxt">Text for every group</label><textarea id="qtxt" rows="6">' + esc(queue.draft) + '</textarea>' +
         '<div class="row"><button type="button" id="qtsave">Save text</button><button type="button" class="alt" id="qtcancel">Cancel</button>' +
         '<span class="small" id="qtmsg"></span></div></div>'
@@ -352,7 +392,7 @@
           '<td class="qg"><a href="' + esc(g.url) + '" target="_blank" rel="noopener">' + esc(g.name) + '</a>' +
           (g.unclear ? ' <span class="tag">Unclear</span>' : '') +
           '<div class="muted small">' + PW.members(g.members) + ' members · last post ' + esc(g.last_ago) + ' · ' + g.posted + '/' + g.max + ' this week</div></td>' +
-          '<td class="qa"><button type="button" class="copy"' + (done ? ' disabled' : '') + '>Copy &amp; open</button></td>' +
+          '<td class="qa"><button type="button" class="copy"' + (done || !q.plan_id ? ' disabled' : '') + '>Copy &amp; open</button></td>' +
           '<td class="qs"><input type="url" class="link" placeholder="Post link (optional)"' + (done ? ' disabled' : '') + '>' +
           '<select class="st"' + (done ? ' disabled' : '') + '><option>Posted</option><option>Pending approval</option></select>' +
           '<button type="button" class="save"' + (done ? ' disabled' : '') + '>' + (done ? 'Saved' : 'Save') + '</button></td>' +
@@ -390,6 +430,7 @@
       $('qsearch').setSelectionRange(pos, pos);
     });
     $('qmanage').addEventListener('click', function () { queue.manage = true; renderManage(); });
+    if ($('qwrite')) $('qwrite').addEventListener('click', function (ev) { ev.preventDefault(); edit(null); location.hash = '#compose'; });
     bindQueueText(q);
     if ($('qdone')) $('qdone').addEventListener('click', function (ev) { ev.preventDefault(); queue.showDone = !queue.showDone; renderWeek(); });
     if ($('qprev')) $('qprev').addEventListener('click', function () { queue.page--; renderWeek(); });
