@@ -136,7 +136,7 @@
       return '<p class="muted">No video has reached the bar yet (<b>' + K.num(d.config.rebook_views) + '</b> views on one video, ' +
         'Config pinwei_rebook_views). Search again, or lower the bar when a good video is worth less reach.</p>';
     }
-    return '<ol class="pwlist">' + rows.map(function (c) {
+    return '<ol class="pwlist" data-scroll>' + rows.map(function (c) {
       return '<li class="pwrow"><div class="pwchead">' +
         '<div class="pwcname"><a class="at" href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a>' +
         (c.display_name ? '<span class="nm">' + esc(c.display_name) + '</span>' : '') + '</div>' +
@@ -242,6 +242,8 @@
       '<section class="card"><h2 class="card-title">Worth booking again</h2>' + creators(d) + '</section>',
       '<section class="card"><h2 class="card-title">Every video</h2>' + videos(d) + '</section>',
       addForm(d)].join('');
+    // the long lists scroll inside their card instead of stretching the page
+    PW.scrollify($('main'));
     PW.remember('pwkol_by', $('cwho'));
     $('pwrefresh').addEventListener('click', function () { load(true); });
     $('pwsearch').addEventListener('click', search);

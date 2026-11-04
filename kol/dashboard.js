@@ -132,7 +132,7 @@
     out.push('<section class="card"><h2 class="card-title">Creators to invite next</h2>' + pool(d.pool, d.rejected) + '</section></div>');
     out.push('<section class="card"><h2 class="card-title">Reviews posted</h2>' + reviews(d.reviews, d.review_totals) + '</section>');
     out.push('<section class="card"><h2 class="card-title">Previous Pin Wei videos <span class="small muted">#pinwei</span></h2>' + pinwei(d.pinwei) + '</section>');
-    $('main').innerHTML = out.join('');
+    $('main').innerHTML = out.join(''); PW.scrollify($('main'));
     $('kdrefresh').addEventListener('click', load);
   }
 

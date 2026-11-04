@@ -117,7 +117,7 @@
       [['Group'], ['Removed', 1], ['Checked', 1], ['Removed rate', 1]],
       d.removers.map(function (g) { return [esc(g.name), g.removed, g.checked, g.rate + '%']; }),
       'None yet. A group shows here after 2 checked posts with at least one removed.') + '</section></div>');
-    $('t-dash').innerHTML = out.join('');
+    $('t-dash').innerHTML = out.join(''); PW.scrollify($('t-dash'));
     $('dRefresh').addEventListener('click', function (ev) { ev.preventDefault(); load(); });
     $('dAsTable').addEventListener('click', function (ev) { ev.preventDefault(); asTable = !asTable; render(); });
     hover();

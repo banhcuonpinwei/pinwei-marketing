@@ -690,7 +690,7 @@
             '<button type="button" class="alt" data-status="removed">Removed</button><div class="msg small"></div></td></tr>';
         }).join('') + '</tbody></table>');
     }
-    $('t-d1').innerHTML = out.join('');
+    $('t-d1').innerHTML = out.join(''); PW.scrollify($('t-d1'));
     Array.prototype.forEach.call($('t-d1').querySelectorAll('tr[data-i]'), function (tr) {
       var p = d.posts[Number(tr.getAttribute('data-i'))];
       var buttons = tr.querySelectorAll('button');
@@ -728,7 +728,7 @@
             '<td data-th="Last numbers">' + esc(last) + '</td><td data-th="Post">' + postLink(p) + '</td></tr>';
         }).join('') + '</tbody></table>');
     }
-    $('t-d3').innerHTML = out.join('');
+    $('t-d3').innerHTML = out.join(''); PW.scrollify($('t-d3'));
   }
 
   // ------------------------------------------------------------ start

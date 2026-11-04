@@ -105,5 +105,24 @@
       'After that this page opens directly.</p></div>';
   }
 
-  window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members, noKeyHtml: noKeyHtml };
+  /**
+   * Keeps a long list inside its card: every table in `root`, and every element marked data-scroll, goes into a
+   * .scroll-y box, so a long list scrolls instead of stretching the page. Runs once after a tab draws; moving the nodes
+   * keeps their listeners, and a box that is already there is left alone. Call it again after redrawing.
+   */
+  function scrollify(root) {
+    var host = root || document;
+    var targets = host.querySelectorAll ? host.querySelectorAll('table, [data-scroll]') : [];
+    Array.prototype.forEach.call(targets, function (el) {
+      var p = el.parentNode;
+      if (!p || (p.classList && p.classList.contains('scroll-y'))) return;
+      var box = document.createElement('div');
+      box.className = 'scroll-y';
+      p.insertBefore(box, el);
+      box.appendChild(el);
+    });
+  }
+
+  window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members,
+    noKeyHtml: noKeyHtml, scrollify: scrollify };
 })();

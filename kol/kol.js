@@ -521,7 +521,7 @@
       }
     }
     if (d.creators.length) out.push(keyLine(d.score_config));
-    $('main').innerHTML = out.join('');
+    $('main').innerHTML = out.join(''); PW.scrollify($('main'));
     bind();
   }
 

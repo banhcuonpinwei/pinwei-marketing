@@ -108,7 +108,7 @@
           '<span class="muted">Page ' + (rv.page + 1) + ' of ' + pages + '</span><button type="button" class="alt" id="rvnext"' + (rv.page >= pages - 1 ? ' disabled' : '') + '>Next</button></div>');
       }
     }
-    $('main').innerHTML = out.join('');
+    $('main').innerHTML = out.join(''); PW.scrollify($('main'));
     bindReview();
   };
 
@@ -269,7 +269,7 @@
             (open ? '<tr class="rvdetail"><td colspan="5">' + outreachDetail(o) + '</td></tr>' : '');
         }).join('') + '</tbody></table>');
     }
-    $('main').innerHTML = html.join('');
+    $('main').innerHTML = html.join(''); PW.scrollify($('main'));
     bindOutreach();
     if ($('orcopy')) document.querySelector('tr.on').scrollIntoView({ block: 'nearest' });
   };
