@@ -18,12 +18,15 @@ body { margin: 0; min-height: 100vh; color: var(--fg); font: 15px/1.55 var(--fon
 .glow .g3 { width: 720px; height: 520px; left: 30%; bottom: -320px; background: radial-gradient(circle, #e6d9be 0%, rgba(230, 217, 190, 0) 70%); opacity: .55; }
 .bar, main { position: relative; z-index: 1; }
 
-.bar { border-bottom: 1px solid rgba(40, 49, 138, .08); background: rgba(255, 255, 255, .55); backdrop-filter: saturate(160%) blur(10px); -webkit-backdrop-filter: saturate(160%) blur(10px); }
-.bar .wrap { display: flex; align-items: center; gap: 10px; height: 56px; font-weight: 700; }
-.bar .mark-img { width: 24px; height: 24px; border-radius: 5px; display: block; background: #fff; box-shadow: 0 1px 3px rgba(17,17,20,.12); }
-.bar .mark { color: var(--navy); letter-spacing: .2px; }
-.bar .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
-.bar .name { color: var(--fg); font-weight: 600; }
+/* Header: the same component as Posting and KOL - the logo blue, a thin red rule, the brand on the left, and the
+   same container as the page content, so all three sites start at the same place. */
+.top { background: var(--navy-strong); border-bottom: 3px solid var(--brand); padding: 11px 0; }
+.top .wrap { display: flex; align-items: center; }
+.top .brand { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.top .brand img.mark { width: 24px; height: 24px; border-radius: 5px; display: block; background: #fff; }
+.top .brand a { color: #fff; text-decoration: none; }
+.top .brand a:hover { color: #ffa0a7; }
+main { padding-top: 22px; }
 
 .hero { padding: 56px 0 28px; max-width: 680px; }
 .eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--navy); }

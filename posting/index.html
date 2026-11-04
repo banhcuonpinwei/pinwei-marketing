@@ -15,16 +15,21 @@
   <nav class="tabs" id="tabs">
     <a href="#compose" data-tab="compose">New post</a>
     <a href="#week" data-tab="week">Groups this week</a>
-    <a href="#d1" data-tab="d1">Check D+1</a>
-    <a href="#d3" data-tab="d3">Check D+3</a>
+    <a href="#check" data-tab="check">Check</a>
     <a href="#dash" data-tab="dash">Dashboard</a>
     <a href="#plan" data-tab="plan">Content plan</a>
   </nav>
   <div id="error"></div>
   <section id="t-compose" class="tab-body"><p class="muted">Loading…</p></section>
   <section id="t-week" class="tab-body" hidden></section>
-  <section id="t-d1" class="tab-body" hidden></section>
-  <section id="t-d3" class="tab-body" hidden></section>
+  <section id="t-check" class="tab-body" hidden>
+    <div class="subswitch" role="group" aria-label="Which day to check">
+      <button type="button" class="subtab on" data-day="d1" aria-pressed="true">D+1</button>
+      <button type="button" class="subtab" data-day="d3" aria-pressed="false">D+3</button>
+    </div>
+    <div id="t-d1" class="subbody"></div>
+    <div id="t-d3" class="subbody" hidden></div>
+  </section>
   <section id="t-dash" class="tab-body" hidden></section>
   <section id="t-plan" class="tab-body" hidden></section>
   <footer class="foot" id="foot"></footer>

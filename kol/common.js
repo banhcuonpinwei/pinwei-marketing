@@ -153,16 +153,11 @@
         trigger.setAttribute('aria-controls', nav.id || '');
         trigger.setAttribute('aria-expanded', 'false');
         trigger.setAttribute('aria-haspopup', 'true');
-        trigger.innerHTML = '<span class="navmark" aria-hidden="true"><i></i><i></i><i></i></span>' +
-          '<span class="navcapt">Section</span><span class="navlabel"></span><span class="navchev" aria-hidden="true"></span>';
+        // one button, two icon states: the hamburger while the menu is closed, the close mark while it is open. They
+        // never show together, because the same state class decides which one is displayed.
+        trigger.innerHTML = '<span class="navicon" aria-hidden="true"><span class="ico-open"></span><span class="ico-close">×</span></span>' +
+          '<span class="navlabel"></span><span class="navchev" aria-hidden="true"></span>';
         wrap.insertBefore(trigger, nav);
-        // the close button lives in the panel, so the way out is visible as well as Escape
-        var close = document.createElement('button');
-        close.type = 'button';
-        close.className = 'navclose';
-        close.setAttribute('aria-label', 'Close the menu');
-        close.textContent = '×';
-        nav.insertBefore(close, nav.firstChild);
 
         var items = function () { return Array.prototype.slice.call(nav.querySelectorAll('a')); };
         var isOpen = function () { return wrap.classList.contains('is-open'); };
@@ -177,7 +172,6 @@
           }
         };
         trigger.addEventListener('click', function (ev) { ev.preventDefault(); setOpen(!isOpen()); });
-        close.addEventListener('click', function (ev) { ev.preventDefault(); setOpen(false); });
         nav.addEventListener('click', function (ev) {
           var t = ev.target;
           if (t && t.tagName === 'A' && isOpen()) setOpen(false, false); // completed: focus follows the new page
@@ -200,9 +194,16 @@
         });
         document.addEventListener('click', function (ev) { if (!wrap.contains(ev.target) && isOpen()) setOpen(false, false); });
       }
+      // the label names the section: the marked one, else the one the address points at, else the first
       var current = nav.querySelector('a.on');
+      if (!current) {
+        var want = String((window.location && window.location.hash) || '').replace(/^#/, '');
+        current = Array.prototype.filter.call(nav.querySelectorAll('a'), function (a) {
+          return a.getAttribute('data-tab') === want || a.getAttribute('href') === '#' + want;
+        })[0] || nav.querySelector('a');
+      }
       var label = trigger.querySelector('.navlabel');
-      if (label) label.textContent = current ? current.textContent.trim() : 'Sections';
+      if (label) label.textContent = current ? current.textContent.trim() : '';
       Array.prototype.forEach.call(nav.querySelectorAll('a'), function (a) {
         if (a.classList.contains('on')) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');

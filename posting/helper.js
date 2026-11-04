@@ -8,22 +8,41 @@
   'use strict';
   var esc = PW.esc;
   var $ = function (id) { return document.getElementById(id); };
-  var TABS = ['compose', 'week', 'd1', 'd3', 'dash', 'plan'];
+  var TABS = ['compose', 'week', 'check', 'dash', 'plan'];
+  /** The Check group holds both checks; #d1 and #d3 stay valid links into it. */
+  var CHECK_SUBS = ['d1', 'd3'];
   var state = { data: null, editing: null, img: null, removeImage: false, armed: null, queuePlan: '', composeBuilt: false };
 
   // ------------------------------------------------------------ frame
 
+  /** The hash may point inside the Check group (#d1, #d3): that is the Check tab with one of the two chosen. */
+  function hashParts() {
+    var raw = String(location.hash).replace(/^#/, '');
+    if (CHECK_SUBS.indexOf(raw) >= 0) return { tab: 'check', sub: raw };
+    return { tab: TABS.indexOf(raw) >= 0 ? raw : 'compose', sub: '' };
+  }
+
   function tabFromHash() {
-    var t = String(location.hash).replace(/^#/, '');
-    return TABS.indexOf(t) >= 0 ? t : 'compose';
+    return hashParts().tab;
   }
 
   function showTab() {
-    var tab = tabFromHash();
+    var parts = hashParts();
+    var tab = parts.tab;
     TABS.forEach(function (t) { $('t-' + t).hidden = t !== tab; });
     Array.prototype.forEach.call($('tabs').querySelectorAll('a'), function (a) {
       a.className = a.getAttribute('data-tab') === tab ? 'on' : '';
     });
+    if (tab === 'check') {
+      // the two checks are one group: the switch inside decides which one is shown, never both
+      var sub = parts.sub || CHECK_SUBS[0];
+      CHECK_SUBS.forEach(function (d) { if ($('t-' + d)) $('t-' + d).hidden = d !== sub; });
+      Array.prototype.forEach.call(document.querySelectorAll('.subtab'), function (b) {
+        var on = b.getAttribute('data-day') === sub;
+        b.className = 'subtab' + (on ? ' on' : '');
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
     // The dashboard has its own call, made the first time its tab opens (dashboard.js).
     if (tab === 'dash' && window.PW_DASHBOARD) window.PW_DASHBOARD.show();
     // narrow screens: the same bar as a menu, naming the tab that is open
@@ -736,6 +755,12 @@
   // ------------------------------------------------------------ start
 
   window.addEventListener('hashchange', showTab);
+  // the Check group's switch: choosing D+1 or D+3 is a hash change, so deep links and the back button still work
+  Array.prototype.forEach.call(document.querySelectorAll('.subtab'), function (b) {
+    b.addEventListener('click', function () { location.hash = '#' + b.getAttribute('data-day'); });
+  });
+  // the menu exists before the data does, so the page is navigable even when the key is missing
+  if (PW.tabMenu) PW.tabMenu();
   if (!PW.token()) {
     $('t-compose').innerHTML = PW.noKeyHtml();
     return;
