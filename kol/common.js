@@ -203,7 +203,17 @@
         })[0] || nav.querySelector('a');
       }
       var label = trigger.querySelector('.navlabel');
-      if (label) label.textContent = current ? current.textContent.trim() : '';
+      if (label) {
+        // the count belongs to the list, not to the button: "Review 56" inside the panel, "Review" on the button
+        var name = '';
+        if (current) {
+          var copy = current.cloneNode(true);
+          var badge = copy.querySelector('.cnt');
+          if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
+          name = String(copy.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+        label.textContent = name;
+      }
       Array.prototype.forEach.call(nav.querySelectorAll('a'), function (a) {
         if (a.classList.contains('on')) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');

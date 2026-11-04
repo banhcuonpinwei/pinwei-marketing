@@ -8,7 +8,7 @@
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; min-height: 100vh; color: var(--fg); font: 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; background: var(--bg); overflow-x: hidden; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; position: relative; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px; position: relative; }
 
 /* Ambient light: three blurred washes behind everything, fixed so they stay put while scrolling. */
 .glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
