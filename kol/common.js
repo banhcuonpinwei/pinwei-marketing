@@ -124,11 +124,15 @@
   }
 
   /**
-   * The tab bar as a menu on a narrow screen: a trigger with the current tab's name, a panel that opens under it, and
-   * the states the navigation needs — closed (start), open (active), and closed again with the new tab marked
-   * (completed). Escape closes it and puts focus back on the trigger; a link closes it; a tap outside closes it; a
-   * resize past the breakpoint puts it back inline. With reduced motion the panel appears at once, never animating in
-   * from nothing. Safe to call after every redraw: it upgrades a bar once and only refreshes the trigger's label.
+   * The navigation, at every width: one button that names the section you are in, and a vertical panel that drops
+   * under it — the shape the reference asked for. Three states are explicit: closed (start: the button says the current
+   * section), open (active: the panel lists the sections and marks the current one), and closed again with the new
+   * section marked (completed).
+   *
+   * Keys: Enter/Space opens, ArrowDown/ArrowUp move through the items, Home/End jump, Escape closes and puts focus back
+   * on the button, Tab out closes. A link closes it, so does a click outside. With reduced motion the panel is simply
+   * there: no transition, and nothing is ever left hidden behind an animation. Safe after every redraw: it upgrades a
+   * bar once and only refreshes the labels.
    */
   function tabMenu(root) {
     var host = root || document;
@@ -148,54 +152,63 @@
         trigger.className = 'navtrigger';
         trigger.setAttribute('aria-controls', nav.id || '');
         trigger.setAttribute('aria-expanded', 'false');
-        trigger.innerHTML = '<span class="navmark" aria-hidden="true">☰</span> <span class="navlabel"></span>';
+        trigger.setAttribute('aria-haspopup', 'true');
+        trigger.innerHTML = '<span class="navmark" aria-hidden="true"><i></i><i></i><i></i></span>' +
+          '<span class="navcapt">Section</span><span class="navlabel"></span><span class="navchev" aria-hidden="true"></span>';
         wrap.insertBefore(trigger, nav);
-        var setOpen = function (open) {
+        // the close button lives in the panel, so the way out is visible as well as Escape
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'navclose';
+        close.setAttribute('aria-label', 'Close the menu');
+        close.textContent = '×';
+        nav.insertBefore(close, nav.firstChild);
+
+        var items = function () { return Array.prototype.slice.call(nav.querySelectorAll('a')); };
+        var isOpen = function () { return wrap.classList.contains('is-open'); };
+        var setOpen = function (open, back) {
           wrap.classList.toggle('is-open', open);
           trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
           if (open) {
-            var first = nav.querySelector('a');
-            if (first) first.focus();
-          } else {
+            var current = nav.querySelector('a.on') || items()[0];
+            if (current) current.focus();
+          } else if (back !== false) {
             trigger.focus();
           }
         };
-        trigger.addEventListener('click', function (ev) {
-          ev.preventDefault();
-          setOpen(!wrap.classList.contains('is-open'));
-        });
+        trigger.addEventListener('click', function (ev) { ev.preventDefault(); setOpen(!isOpen()); });
+        close.addEventListener('click', function (ev) { ev.preventDefault(); setOpen(false); });
         nav.addEventListener('click', function (ev) {
-          if (ev.target && ev.target.tagName === 'A' && wrap.classList.contains('is-open')) {
-            // completed: the tab is chosen, so the menu closes and the bar marks the new one
-            wrap.classList.remove('is-open');
-            trigger.setAttribute('aria-expanded', 'false');
-          }
+          var t = ev.target;
+          if (t && t.tagName === 'A' && isOpen()) setOpen(false, false); // completed: focus follows the new page
         });
         wrap.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Escape' && wrap.classList.contains('is-open')) {
+          if (!isOpen()) return;
+          var list = items();
+          var at = list.indexOf(document.activeElement);
+          if (ev.key === 'Escape') { ev.preventDefault(); setOpen(false); return; }
+          if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
             ev.preventDefault();
-            setOpen(false);
+            var step = ev.key === 'ArrowDown' ? 1 : -1;
+            var next = list[(at + step + list.length) % list.length];
+            if (next) next.focus();
+          } else if (ev.key === 'Home' || ev.key === 'End') {
+            ev.preventDefault();
+            var edge = ev.key === 'Home' ? list[0] : list[list.length - 1];
+            if (edge) edge.focus();
           }
         });
-        document.addEventListener('click', function (ev) {
-          if (!wrap.contains(ev.target) && wrap.classList.contains('is-open')) {
-            wrap.classList.remove('is-open');
-            trigger.setAttribute('aria-expanded', 'false');
-          }
-        });
-        window.addEventListener('resize', function () {
-          if (window.innerWidth > 900 && wrap.classList.contains('is-open')) {
-            wrap.classList.remove('is-open');
-            trigger.setAttribute('aria-expanded', 'false');
-          }
-        });
+        document.addEventListener('click', function (ev) { if (!wrap.contains(ev.target) && isOpen()) setOpen(false, false); });
       }
       var current = nav.querySelector('a.on');
       var label = trigger.querySelector('.navlabel');
-      if (label) label.textContent = current ? current.textContent.trim() : 'Menu';
+      if (label) label.textContent = current ? current.textContent.trim() : 'Sections';
+      Array.prototype.forEach.call(nav.querySelectorAll('a'), function (a) {
+        if (a.classList.contains('on')) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
     });
   }
-
   window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members,
     noKeyHtml: noKeyHtml, scrollify: scrollify, tabMenu: tabMenu };
 })();
