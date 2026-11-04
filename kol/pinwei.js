@@ -6,6 +6,10 @@
  * come from the weekly #pinwei search (or from a person pasting a link the search missed); each is marked as a
  * collaboration or an independent (organic) visit, by Pin Wei's own Outreach records and the caption's ad markers.
  * Nothing is sent from here: a person reads, decides, and contacts the creator themselves.
+ *
+ * The search is a search, not an exact tag: TikTok also answers Pennywise clips, a #pinwei restaurant in Manchester and
+ * Chinese "pinwei" (品味) videos. So a video is kept only when its caption names Pin Wei and its account is in Vietnam
+ * (PinWei.js, pinweiKeep_), and anything that still slips through can be hidden here and restored later.
  */
 (function () {
   'use strict';
@@ -14,7 +18,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var data = null;
   var loading = false;
-  var st = { filter: 'All', msg: '', busy: false, addOpen: false, inviting: '' };
+  var st = { filter: 'All', msg: '', busy: false, addOpen: false, inviting: '', showHidden: false };
   var COLLAB_CLASS = { Collaborator: 'st-collab', Organic: 'st-organic', Unknown: 'st-unknown' };
   var VERDICT_CLASS = { 'Book again': 'st-book', 'First booking?': 'st-first', 'Check first': 'st-check', 'Below the bar': 'st-below' };
   var VERDICT_HELP = {
@@ -28,6 +32,10 @@
     Organic: 'They named Pin Wei and claimed nothing, and Outreach has no booking: an independent visit, not a paid collaboration.',
     Unknown: 'Neither the caption nor our records say: open the video and choose. Your answer is kept.',
   };
+  var PLAY_HELP = "TikTok's own player. The /video/ page shows some people \"Access denied\"; this one plays the same video.";
+  var KEEP_HELP = 'The TikTok #pinwei search is a search, not an exact tag: it also returns Pennywise clips, a #pinwei ' +
+    'restaurant in Manchester and Chinese "pinwei" (品味) videos. A video is kept only when its caption uses #pinwei (or ' +
+    'names Pin Wei) and its account is in Vietnam.';
 
   function say(text, cls) {
     st.msg = text;
@@ -54,8 +62,14 @@
     return badge(VERDICT_CLASS[v] || 'st-below', v, VERDICT_HELP[v] || '');
   }
 
-  function videoLink(v) {
-    return '<a href="' + esc(v.url) + '" target="_blank" rel="noopener">Open</a>';
+  /** The player link: it works where /video/ shows "Access denied". */
+  function playLink(v) {
+    return K.hint('<a class="small" href="' + esc(v.embed_url) + '" target="_blank" rel="noopener">Play</a>', PLAY_HELP);
+  }
+
+  /** The video's own page (comments, the creator's profile). */
+  function pageLink(v) {
+    return '<a class="small" href="' + esc(v.url) + '" target="_blank" rel="noopener">Page</a>';
   }
 
   function creatorLink(c) {
@@ -82,7 +96,10 @@
       '<p class="qsum">Counted from the sheets just now. ' + last +
       ' <button type="button" class="small-btn alt" id="pwsearch"' + (st.busy ? ' disabled' : '') + '>Search #pinwei now</button>' +
       ' <span class="small muted">reads up to #' + esc(d.config.hashtags.join(' #')) + ' (about $' + cost.toFixed(2) + '), once a day</span>' +
-      ' <button type="button" class="link-btn" id="pwrefresh">Refresh</button><br><span class="small" id="pwmsg">' + esc(st.msg) + '</span></p>';
+      ' <button type="button" class="small-btn alt" id="pwcleanup">Re-check old videos</button>' +
+      ' <button type="button" class="link-btn" id="pwrefresh">Refresh</button><br><span class="small" id="pwmsg">' + esc(st.msg) + '</span></p>' +
+      '<p class="small muted">' + K.hint('Kept: videos in Vietnam that name Pin Wei', KEEP_HELP) + ' · the account\'s country ' +
+      'and any place the video names are shown under each creator' + (d.totals.hidden ? ' · <b>' + d.totals.hidden + '</b> hidden' : '') + '.</p>';
   }
 
   /** The invitation a rebooking writes, from the same Config templates as the review queue. */
@@ -101,6 +118,20 @@
       ' <button type="button" class="link-btn pwcancel">Cancel</button></div>';
   }
 
+  /** Every clip of a creator, biggest first: one click to the promo video, without leaving the shortlist. */
+  function clipsHtml(c) {
+    if (!c.clips || !c.clips.length) return '';
+    return '<details class="pwclips"><summary>' + c.clips.length + (c.clips.length === 1 ? ' clip' : ' clips') + '</summary>' +
+      '<ol class="pwcliplist">' + c.clips.map(function (v) {
+        return '<li>' + (v.posted_at ? esc(v.posted_at) + ' · ' : '') + '<b>' + members(v.views) + '</b> views' +
+          (v.likes !== null ? ' · ' + members(v.likes) + ' likes' : '') +
+          (v.comments !== null ? ' · ' + members(v.comments) + ' comments' : '') +
+          (v.shares !== null ? ' · ' + members(v.shares) + ' shares' : '') +
+          ' ' + collabBadge(v.collab) + ' ' + playLink(v) + ' ' + pageLink(v) +
+          (v.caption ? '<div class="pwcap">' + esc(v.caption.length > 90 ? v.caption.slice(0, 90) + '…' : v.caption) + '</div>' : '') + '</li>';
+      }).join('') + '</ol></details>';
+  }
+
   function rebook(d) {
     var rows = d.creators.filter(function (c) { return c.verdict !== 'Below the bar'; });
     if (!rows.length) {
@@ -108,15 +139,16 @@
         'worked with is below that bar (Config pinwei_rebook_views).</p>';
     }
     return '<p class="small">Highest video of theirs first. The bar is <b>' + K.num(d.config.rebook_views) + '</b> views on one video ' +
-      '(Config pinwei_rebook_views). <b>Invite again</b> writes the same invitation the review queue writes, from the Config template: ' +
-      'it waits in Outreach for a person to copy and send.</p><div class="scroll-x"><table class="list kdtable pwtable"><thead><tr>' +
+      '(Config pinwei_rebook_views). Open <b>N clips</b> under a creator to see every video of theirs. <b>Invite again</b> writes the ' +
+      'same invitation the review queue writes: it waits in Outreach for a person to copy and send.</p>' +
+      '<div class="scroll-x"><table class="list kdtable pwtable"><thead><tr>' +
       '<th>Creator</th><th class="n">Followers</th><th class="n">Videos</th><th class="n">Best video</th><th class="n">Average</th>' +
       '<th class="n">Views in all</th><th>Last posted</th><th>How we know them</th><th>Worth</th><th></th></tr></thead><tbody>' +
       rows.map(function (c) {
-        return '<tr><td class="who">' + creatorLink(c) + '</td><td class="n" data-th="Followers">' + members(c.followers) + '</td>' +
+        return '<tr><td class="who">' + creatorLink(c) + clipsHtml(c) + '</td>' +
+          '<td class="n" data-th="Followers">' + members(c.followers) + '</td>' +
           '<td class="n" data-th="Videos">' + c.n + '</td>' +
-          '<td class="n" data-th="Best video">' + members(c.views_best) + (c.best_video ? ' <a class="small" href="' + esc(c.best_video.url) +
-            '" target="_blank" rel="noopener">open</a>' : '') + '</td>' +
+          '<td class="n" data-th="Best video">' + members(c.views_best) + (c.best_video ? ' ' + playLink(c.best_video) : '') + '</td>' +
           '<td class="n" data-th="Average">' + members(c.views_avg) + '</td><td class="n" data-th="Views in all">' + members(c.views_total) + '</td>' +
           '<td data-th="Last posted">' + esc(c.last_posted || '-') + '</td><td class="stc" data-th="How we know them">' + collabBadge(c.collab) + '</td>' +
           '<td class="stc" data-th="Worth">' + verdictBadge(c.verdict) + '</td><td class="act">' +
@@ -125,8 +157,20 @@
       }).join('') + '</tbody></table></div>';
   }
 
+  /** Where the video is: the account's country, and any place the video names. */
+  function whereLine(v) {
+    var bits = [];
+    if (v.region) bits.push(v.region);
+    if (v.location && v.location !== v.region) bits.push(v.location);
+    return bits.length ? '<div class="small muted pwloc">' + esc(bits.join(' · ')) + '</div>' : '';
+  }
+
   function videoRows(d) {
-    return d.videos.filter(function (v) { return st.filter === 'All' || v.collab === st.filter; });
+    return d.videos.filter(function (v) {
+      if (st.filter !== 'All' && v.collab !== st.filter) return false;
+      if (v.hidden && !st.showHidden) return false;
+      return true;
+    });
   }
 
   function videos(d) {
@@ -138,8 +182,11 @@
       opt('All', 'All videos (' + d.totals.videos + ')') +
       opt('Collaborator', 'Collaborations (' + d.totals.collaborators + ')') +
       opt('Organic', 'Came on their own (' + d.totals.organic + ')') +
-      opt('Unknown', 'Not answered yet (' + d.totals.unknown + ')') + '</select>' + K.whoBox() + '</div>' +
-      '<p class="small muted">Choose what each video is under "What it is": your answer is kept, the next search only refreshes the numbers.</p>';
+      opt('Unknown', 'Not answered yet (' + d.totals.unknown + ')') + '</select>' +
+      '<label class="check pwcheck"><input type="checkbox" id="pwshowhidden"' + (st.showHidden ? ' checked' : '') + '> Show hidden (' +
+      (d.totals.hidden || 0) + ')</label>' + K.whoBox() + '</div>' +
+      '<p class="small muted">Choose what each video is under "What it is": your answer is kept, the next search only refreshes the ' +
+      'numbers. <b>Hide</b> takes a video out of the list and the counts (it stays in the sheet, and Restore brings it back).</p>';
     if (!rows.length) {
       return bar + '<p class="muted small">No video here yet. The search runs every ' + esc(d.config.search_day || 'week') + '; click ' +
         '<b>Search #pinwei now</b> to read them at once, or add one by its link below.</p>';
@@ -149,7 +196,9 @@
       '<th class="n">' + K.hint('Like / view', 'Likes per view, as the creators tab shows them.') + '</th>' +
       '<th class="n">' + K.hint('View / follower', 'Views of this video against the creator\'s followers: 2.0 = twice their followers.', 'r') + '</th>' +
       '<th>What it is</th><th></th></tr></thead><tbody>' + rows.map(function (v) {
-        return '<tr><td data-th="Posted">' + esc(v.posted_at || '-') + '</td><td class="who">' + creatorLink(v) +
+        return '<tr' + (v.hidden ? ' class="pwhiddenrow"' : '') + '><td data-th="Posted">' + esc(v.posted_at || '-') + '</td>' +
+          '<td class="who">' + creatorLink(v) + (v.hidden ? ' ' + badge('st-below', 'Hidden', 'Hidden by ' + (v.hidden_by || 'a person') +
+            (v.hidden_why ? ': ' + v.hidden_why : '') + '. Restore brings it back.') : '') + whereLine(v) +
           (v.caption ? '<div class="small muted pwcap">' + esc(v.caption.length > 90 ? v.caption.slice(0, 90) + '…' : v.caption) + '</div>' : '') + '</td>' +
           '<td class="n" data-th="Views">' + members(v.views) + '</td><td class="n" data-th="Likes">' + members(v.likes) + '</td>' +
           '<td class="n" data-th="Comments">' + members(v.comments) + '</td><td class="n" data-th="Shares">' + members(v.shares) + '</td>' +
@@ -159,7 +208,9 @@
             d.config.collabs.map(function (c) { return '<option value="' + esc(c) + '"' + (v.collab === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
             '</select>' + (v.by_person ? ' <span class="small muted">by ' + esc(v.collab_by) + '</span>' : '') +
             '<div class="small muted">' + K.hint(esc(v.collab_evidence.slice(0, 60)) + (v.collab_evidence.length > 60 ? '…' : ''), v.collab_evidence) + '</div></td>' +
-          '<td>' + videoLink(v) + '</td></tr>';
+          '<td class="act">' + playLink(v) + ' ' + pageLink(v) + ' ' +
+            (v.hidden ? '<button type="button" class="link-btn pwrestore" data-id="' + esc(v.video_id) + '">Restore</button>' :
+              '<button type="button" class="link-btn pwhide" data-id="' + esc(v.video_id) + '">Hide</button>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
@@ -183,6 +234,10 @@
 
   // ------------------------------------------------------------ drawing and actions
 
+  function each(selector, fn) {
+    Array.prototype.forEach.call(document.querySelectorAll(selector), fn);
+  }
+
   function draw() {
     if (!data) return;
     var d = data;
@@ -195,33 +250,29 @@
     PW.remember('pwkol_by', $('cwho'));
     $('pwrefresh').addEventListener('click', function () { load(true); });
     $('pwsearch').addEventListener('click', search);
+    $('pwcleanup').addEventListener('click', cleanup);
     $('pwfilter').addEventListener('change', function () { st.filter = $('pwfilter').value; draw(); });
+    $('pwshowhidden').addEventListener('change', function () { st.showHidden = $('pwshowhidden').checked; load(true); });
     $('pwadd').addEventListener('click', add);
-    Array.prototype.forEach.call(document.querySelectorAll('button.pwinv'), function (el) {
+    each('button.pwinv', function (el) {
       el.addEventListener('click', function () {
         if (!who()) return say('Type your name in "Saved by" first.', 'badc');
         st.inviting = el.getAttribute('data-id');
         draw();
       });
     });
-    Array.prototype.forEach.call(document.querySelectorAll('button.pwcancel'), function (el) {
-      el.addEventListener('click', function () { st.inviting = ''; draw(); });
-    });
+    each('button.pwcancel', function (el) { el.addEventListener('click', function () { st.inviting = ''; draw(); }); });
     if ($('pwinvite')) $('pwinvite').addEventListener('click', function () { invite($('pwinvite').getAttribute('data-id')); });
-    Array.prototype.forEach.call(document.querySelectorAll('select.pwc'), function (el) {
+    each('select.pwc', function (el) {
       el.addEventListener('change', function () { setCollab(el.getAttribute('data-id'), el.value); });
     });
+    each('button.pwhide', function (el) {
+      el.addEventListener('click', function () { hide(el.getAttribute('data-id'), true); });
+    });
+    each('button.pwrestore', function (el) {
+      el.addEventListener('click', function () { hide(el.getAttribute('data-id'), false); });
+    });
     PW.remember('pwkol_by', $('cwho'));
-  }
-
-  /** Writes the invitation for a creator we want back (the same row the review queue writes: To send in Outreach). */
-  function invite(creatorId) {
-    PW.api('reviewApprove', { creator_id: creatorId, invite_type: $('pwtype').value, branch: $('pwbranch').value, saved_by: who() })
-      .then(function (r) {
-        st.inviting = '';
-        say(r.data.message);
-        load(true);
-      }, function (err) { say(err.message, 'badc'); });
   }
 
   function setCollab(videoId, collab) {
@@ -230,6 +281,33 @@
       say(r.data.message);
       load(true);
     }, function (err) { say(err.message, 'badc'); });
+  }
+
+  /** Hide a video out of the list (still in the sheet), or restore it. */
+  function hide(videoId, on) {
+    if (!who()) return say('Type your name in "Saved by" first.', 'badc');
+    PW.api('pinweiVideoHide', { video_id: videoId, hide: on, saved_by: who() }).then(function (r) {
+      say(r.data.message);
+      load(true);
+    }, function (err) { say(err.message, 'badc'); });
+  }
+
+  /** Re-check every old video against today's rules (the ones read before the country was stored, too). */
+  function cleanup() {
+    say('Re-checking the videos already in the sheet…');
+    PW.api('pinweiCleanup').then(function (r) {
+      say('Checked ' + r.data.checked + ' videos: hid ' + r.data.hidden + (r.data.why ? ' (' + r.data.why + ')' : '') + '.');
+      load(true);
+    }, function (err) { say(err.message, 'badc'); });
+  }
+
+  function invite(creatorId) {
+    PW.api('reviewApprove', { creator_id: creatorId, invite_type: $('pwtype').value, branch: $('pwbranch').value, saved_by: who() })
+      .then(function (r) {
+        st.inviting = '';
+        say(r.data.message);
+        load(true);
+      }, function (err) { say(err.message, 'badc'); });
   }
 
   function search() {
@@ -268,7 +346,7 @@
     loading = true;
     if (force) data = null;
     if (!data) $('main').innerHTML = '<p class="muted">Reading the Pin Wei videos…</p>';
-    PW.api('pinweiList').then(function (r) {
+    PW.api('pinweiList', { show_hidden: st.showHidden }).then(function (r) {
       loading = false;
       data = r.data;
       if (K.state.tab === 'pinwei') draw();
