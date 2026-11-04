@@ -32,7 +32,9 @@
     Organic: 'They named Pin Wei and claimed nothing, and Outreach has no booking: an independent visit, not a paid collaboration.',
     Unknown: 'Neither the caption nor our records say: open the video and choose. Your answer is kept.',
   };
-  var PLAY_HELP = "TikTok's own player. The /video/ page shows some people \"Access denied\"; this one plays the same video.";
+  var PLAY_HELP = "Plays in a box on this page, through TikTok's own embed player. Opening the player address itself, or the " +
+    'video page, gets "Access denied" / "overload-protect" from TikTok on some networks: the embed is made to sit inside a page, ' +
+    'which is what this does.';
   var KEEP_HELP = 'The TikTok #pinwei search is a search, not an exact tag: it also returns Pennywise clips, a #pinwei ' +
     'restaurant in Manchester and Chinese "pinwei" (品味) videos. A video is kept only when its caption uses #pinwei (or ' +
     'names Pin Wei) and its account is in Vietnam.';
@@ -62,15 +64,63 @@
     return badge(VERDICT_CLASS[v] || 'st-below', v, VERDICT_HELP[v] || '');
   }
 
-  /** The player link: it works where /video/ shows "Access denied". */
-  function playLink(v) {
-    return K.hint('<a class="small" href="' + esc(v.embed_url) + '" target="_blank" rel="noopener">Play</a>', PLAY_HELP);
+  /** The player link: it plays in a box on this page (see openPlayer), where /video/ shows "Access denied". */
+  function playLink(v, label) {
+    return K.hint('<a class="small pwplay" href="' + esc(v.embed_url) + '" data-url="' + esc(v.url || '') + '" data-label="' + esc(label || '') +
+      '" data-date="' + esc(v.posted_at || '') + '" data-views="' + (v.views === null || v.views === undefined ? '' : esc(PW.members(v.views))) +
+      '">Play</a>', PLAY_HELP);
   }
 
   /** The video's own page (comments, the creator's profile). */
   function pageLink(v) {
     return '<a class="small" href="' + esc(v.url) + '" target="_blank" rel="noopener">Page</a>';
   }
+
+  // ------------------------------------------------------------ the player box
+
+  /**
+   * TikTok's embed player, inside our page. This is what the embed is for: the browser sends this page as the referer and
+   * the player runs. The same address opened directly in a tab gets "overload-protect triggered" or "Access denied",
+   * because a bare request for it looks like a hotlink or a bot.
+   */
+  function openPlayer(el) {
+    closePlayer();
+    var label = el.getAttribute('data-label') || '';
+    var date = el.getAttribute('data-date') || '';
+    var views = el.getAttribute('data-views') || '';
+    var page = el.getAttribute('data-url') || el.href;
+    var box = document.createElement('div');
+    box.id = 'pwplayer';
+    box.className = 'pwplayer';
+    box.innerHTML = '<div class="pwplaybox" role="dialog" aria-modal="true" aria-label="TikTok video">' +
+      '<div class="pwplayhead"><b>' + esc(label) + '</b> <span class="small muted">' + esc(date) + (views ? ' · ' + esc(views) + ' views' : '') +
+      '</span> <button type="button" class="link-btn" id="pwplayerclose">Close</button></div>' +
+      '<div class="pwplayerframe"><iframe src="' + esc(el.href) + '" title="TikTok video" allow="autoplay; encrypted-media; fullscreen" ' +
+      'allowfullscreen frameborder="0"></iframe></div>' +
+      '<div class="pwplayerfoot small"><a href="' + esc(page) + '" target="_blank" rel="noopener">Open on TikTok</a> · ' +
+      '<button type="button" class="link-btn" id="pwcopylink">Copy link</button>' +
+      '<div class="muted">If the box stays black, TikTok is blocking this network: try the phone, or another browser.</div></div></div>';
+    document.body.appendChild(box);
+    $('pwplayerclose').addEventListener('click', closePlayer);
+    box.addEventListener('click', function (ev) { if (ev.target === box) closePlayer(); });
+    $('pwcopylink').addEventListener('click', function () {
+      PW.copy(page, function (ok) {
+        say(ok ? 'Link copied: paste it into the TikTok app if the player does not start.' : 'Could not copy the link.', ok ? '' : 'badc');
+      });
+    });
+    document.addEventListener('keydown', onPlayerKey);
+  }
+
+  function onPlayerKey(ev) {
+    if (ev && ev.key === 'Escape') closePlayer();
+  }
+
+  function closePlayer() {
+    var box = $('pwplayer');
+    if (box && box.parentNode) box.parentNode.removeChild(box);
+    document.removeEventListener('keydown', onPlayerKey);
+  }
+
 
   function creatorLink(c) {
     return '<a href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a>' +
@@ -127,7 +177,7 @@
           (v.likes !== null ? ' · ' + members(v.likes) + ' likes' : '') +
           (v.comments !== null ? ' · ' + members(v.comments) + ' comments' : '') +
           (v.shares !== null ? ' · ' + members(v.shares) + ' shares' : '') +
-          ' ' + collabBadge(v.collab) + ' ' + playLink(v) + ' ' + pageLink(v) +
+          ' ' + collabBadge(v.collab) + ' ' + playLink(v, '@' + c.handle) + ' ' + pageLink(v) +
           (v.caption ? '<div class="pwcap">' + esc(v.caption.length > 90 ? v.caption.slice(0, 90) + '…' : v.caption) + '</div>' : '') + '</li>';
       }).join('') + '</ol></details>';
   }
@@ -148,7 +198,7 @@
         return '<tr><td class="who">' + creatorLink(c) + clipsHtml(c) + '</td>' +
           '<td class="n" data-th="Followers">' + members(c.followers) + '</td>' +
           '<td class="n" data-th="Videos">' + c.n + '</td>' +
-          '<td class="n" data-th="Best video">' + members(c.views_best) + (c.best_video ? ' ' + playLink(c.best_video) : '') + '</td>' +
+          '<td class="n" data-th="Best video">' + members(c.views_best) + (c.best_video ? ' ' + playLink(c.best_video, '@' + c.handle) : '') + '</td>' +
           '<td class="n" data-th="Average">' + members(c.views_avg) + '</td><td class="n" data-th="Views in all">' + members(c.views_total) + '</td>' +
           '<td data-th="Last posted">' + esc(c.last_posted || '-') + '</td><td class="stc" data-th="How we know them">' + collabBadge(c.collab) + '</td>' +
           '<td class="stc" data-th="Worth">' + verdictBadge(c.verdict) + '</td><td class="act">' +
@@ -208,7 +258,7 @@
             d.config.collabs.map(function (c) { return '<option value="' + esc(c) + '"' + (v.collab === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
             '</select>' + (v.by_person ? ' <span class="small muted">by ' + esc(v.collab_by) + '</span>' : '') +
             '<div class="small muted">' + K.hint(esc(v.collab_evidence.slice(0, 60)) + (v.collab_evidence.length > 60 ? '…' : ''), v.collab_evidence) + '</div></td>' +
-          '<td class="act">' + playLink(v) + ' ' + pageLink(v) + ' ' +
+          '<td class="act">' + playLink(v, '@' + v.handle) + ' ' + pageLink(v) + ' ' +
             (v.hidden ? '<button type="button" class="link-btn pwrestore" data-id="' + esc(v.video_id) + '">Restore</button>' :
               '<button type="button" class="link-btn pwhide" data-id="' + esc(v.video_id) + '">Hide</button>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
@@ -271,6 +321,14 @@
     });
     each('button.pwrestore', function (el) {
       el.addEventListener('click', function () { hide(el.getAttribute('data-id'), false); });
+    });
+    // Play opens TikTok's embed player in a box on this page, not in a tab: a bare /embed or /video request is what
+    // TikTok answers with "overload-protect triggered" / "Access denied".
+    each('a.pwplay', function (el) {
+      el.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        openPlayer(el);
+      });
     });
     PW.remember('pwkol_by', $('cwho'));
   }
