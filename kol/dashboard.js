@@ -88,6 +88,29 @@
       }).join('') + '</tbody></table></div>';
   }
 
+  /** The videos that already exist about Pin Wei (step g), and who is worth booking again. */
+  function pinwei(p) {
+    if (!p || !p.videos) {
+      return '<p class="muted small">No video about Pin Wei found yet. The <b>#pinwei</b> search runs every week; in the ' +
+        'PinWei videos tab, <b>Search #pinwei now</b> reads them at once.</p>';
+    }
+    var line = '<p class="small"><b>' + K.num(p.videos) + '</b> videos: <b>' + K.num(p.collaborators) + '</b> from a collaboration, ' +
+      '<b>' + K.num(p.organic) + '</b> that came on their own' + (p.unknown ? ', <b>' + K.num(p.unknown) + '</b> not answered yet' : '') +
+      ' · <b>' + K.num(p.views) + '</b> views in all' + (p.avg_views !== null ? ', <b>' + K.num(p.avg_views) + '</b> a video' : '') + '.</p>';
+    var out = '<p class="small">' + K.hint('<b>' + K.num(p.rebook) + '</b> to book again', 'A creator Pin Wei hired before, with a ' +
+      'video of ' + K.num(p.rebook_views) + ' views or more (Config pinwei_rebook_views).') + ' · ' + K.num(p.first_booking) +
+      ' who came on their own and did well (a first booking) · ' + K.num(p.check) + ' to check first (did well, nothing says who hired them).</p>';
+    if (!p.top.length) return line + out;
+    var cls = { 'Book again': 'st-book', 'First booking?': 'st-first', 'Check first': 'st-check', 'Below the bar': 'st-below' };
+    return line + out + '<div class="scroll-x"><table class="list kdtable"><thead><tr><th>Creator</th><th class="n">Videos</th>' +
+      '<th class="n">Best video</th><th>Last posted</th><th>Worth</th><th></th></tr></thead><tbody>' + p.top.map(function (c) {
+        return '<tr><td><a href="' + esc(c.profile_url) + '" target="_blank" rel="noopener">@' + esc(c.handle) + '</a></td>' +
+          '<td class="n">' + c.n + '</td><td class="n">' + K.num(c.views_best) + '</td><td>' + esc(c.last_posted || '-') + '</td>' +
+          '<td><span class="st ' + (cls[c.verdict] || 'st-below') + '">' + esc(c.verdict) + '</span></td>' +
+          '<td><a class="small" href="#pinwei">Open</a></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
   function pool(p, rejected) {
     return '<p class="small"><b>' + p.ready + '</b> ' + K.hint('ready to invite', 'Food creators in HCMC with numbers, not left out by the rules, never invited or rejected.') +
       ' (' + p.nano + ' nano, ' + p.micro + ' micro; ' + p.with_growth + ' with growth measured) · <b>' + p.new_7d + '</b> found in the last 7 days · <b>' + p.waiting_profile +
@@ -108,6 +131,7 @@
     out.push('<div class="kdgrid"><section class="card"><h2 class="card-title">Invitations: what came of them</h2>' + results(d.results) + '</section>');
     out.push('<section class="card"><h2 class="card-title">Creators to invite next</h2>' + pool(d.pool, d.rejected) + '</section></div>');
     out.push('<section class="card"><h2 class="card-title">Reviews posted</h2>' + reviews(d.reviews, d.review_totals) + '</section>');
+    out.push('<section class="card"><h2 class="card-title">Previous Pin Wei videos <span class="small muted">#pinwei</span></h2>' + pinwei(d.pinwei) + '</section>');
     $('main').innerHTML = out.join('');
     $('kdrefresh').addEventListener('click', load);
   }

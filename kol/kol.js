@@ -1,7 +1,8 @@
 /*
  * The KOL site's main page: the Creators list (search, filters, 15 per page) and "Add a creator" by
- * profile link, and the tabs: #creators, #review, #outreach (drawn by review.js) and #dashboard (dashboard.js),
- * through window.KOL. The AI providers and TikTok data panel shows on the Creators tab.
+ * profile link, and the tabs: #creators, #review, #outreach (drawn by review.js), #pinwei (pinwei.js, the videos
+ * that already exist about Pin Wei) and #dashboard (dashboard.js), through window.KOL. The AI providers and TikTok
+ * data panel shows on the Creators tab.
  */
 (function () {
   'use strict';
@@ -9,7 +10,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var PAGE = 15;
   var state = { data: null, tab: 'creators', search: '', platform: 'All', status: 'All', sort: 'newest', page: 0, addOpen: false, classifying: false, classMsg: '' };
-  var TABS = ['creators', 'review', 'outreach', 'dashboard'];
+  var TABS = ['creators', 'review', 'outreach', 'pinwei', 'dashboard'];
 
   function tabFromHash() {
     var t = String(location.hash || '').replace(/^#/, '').split('&')[0];
@@ -175,6 +176,12 @@
     out.push('<div class="small">' + hint('Search: ' + esc(a.search_day || 'off') + ' 06:00', 'Each ' + (a.search_day || '(no day set)') + ' at 06:00, the newest videos of these ' +
       'hashtags (Config apify_hashtags): #' + a.hashtags.join(' #') + '. Their authors in Vietnam become creators; those outside the follower range or verified are ' +
       'kept but not read further.') + '</div>');
+    var pw = state.data.pinwei || {};
+    if (pw.hashtags && pw.hashtags.length) {
+      out.push('<div class="small">' + hint('#' + pw.hashtags.join(' #') + ' · ' + (pw.videos || 0) + ' videos', 'The Pin Wei search reads the videos that already ' +
+        'exist about the restaurant: what each one got, who made it, and whether it was a collaboration or an independent visit. The creators behind them join ' +
+        'this list too (source pinwei_hashtag). See the PinWei videos tab.') + '</div>');
+    }
     if (a.profiles_per_day > 0) {
       out.push('<div class="small">' + hint('Apify backup: ' + a.profiles_per_day + ' profiles a day', 'Apify also reads the newest videos of ' + a.profiles_per_day +
         ' waiting profiles each morning (Config apify_profiles_per_day, about $0.03 each). Set it to 0 while the runner works.') + '</div>');
@@ -422,8 +429,8 @@
   }
 
   function renderTabs() {
-    var n = { review: reviewQueue().length, outreach: openOutreach().length };
-    var label = { creators: 'Creators', review: 'Review', outreach: 'Outreach', dashboard: 'Dashboard' };
+    var n = { review: reviewQueue().length, outreach: openOutreach().length, pinwei: (state.data.pinwei || {}).rebook || 0 };
+    var label = { creators: 'Creators', review: 'Review', outreach: 'Outreach', pinwei: 'PinWei videos', dashboard: 'Dashboard' };
     $('tabs').innerHTML = TABS.map(function (t) {
       return '<a href="#' + t + '"' + (state.tab === t ? ' class="on" aria-current="page"' : '') + '>' + label[t] + (n[t] ? ' <span class="cnt">' + n[t] + '</span>' : '') + '</a>';
     }).join('') + '<a href="install.html">Bookmark</a>';
@@ -436,6 +443,7 @@
     $('aipanel').hidden = solo;
     if (state.tab === 'review') return window.KOL.renderReview();
     if (state.tab === 'outreach') return window.KOL.renderOutreach();
+    if (state.tab === 'pinwei') return window.KOL.renderPinwei();
     if (state.tab === 'dashboard') return window.KOL.renderDashboard();
     renderCreators();
   }
