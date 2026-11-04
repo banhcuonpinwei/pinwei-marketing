@@ -26,6 +26,8 @@
     });
     // The dashboard has its own call, made the first time its tab opens (dashboard.js).
     if (tab === 'dash' && window.PW_DASHBOARD) window.PW_DASHBOARD.show();
+    // narrow screens: the same bar as a menu, naming the tab that is open
+    if (PW.tabMenu) PW.tabMenu();
   }
 
   function showError(err) {

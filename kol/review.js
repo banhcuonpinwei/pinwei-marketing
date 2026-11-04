@@ -85,8 +85,9 @@
     if (rv.page >= pages) rv.page = pages - 1;
     var shown = all.slice(rv.page * PAGE, (rv.page + 1) * PAGE);
     var left = d.creators.filter(function (c) { return c.status === 'Classified' && c.excluded; }).length;
-    var out = ['<div class="qbar cbar"><select id="rvplatform" aria-label="Platform"><option value="All">All platforms</option>' +
-      options(d.platforms, rv.platform) + '</select>' + K.sortSelect('rvsort', rv.sort) + K.whoBox() + '</div>'];
+    var out = [K.hero({ kicker: 'KOL · Review', title: 'Review', lead: 'Classified creators the rules do not leave out, highest like rate first. Approve with an invitation, or reject with a reason — the creator is never contacted by the system.', stats: [[all.length, 'to review'], [K.openOutreach().length, 'invitations open']] })];
+    out.push('<div class="qbar cbar"><select id="rvplatform" aria-label="Platform"><option value="All">All platforms</option>' +
+      options(d.platforms, rv.platform) + '</select>' + K.sortSelect('rvsort', rv.sort) + K.whoBox() + '</div>');
     out.push('<p class="qsum">' + all.length + ' to review' + (left ? ' · ' + K.hint('<span class="muted">' + left + ' left out by the rules</span>',
       'Classified creators the rules leave out (verified, outside the follower range, not food, not in HCMC). They stay in Creators with the reason.') : '') +
       ' <span class="small" id="rvsum">' + rv.sum + '</span></p>');
@@ -244,9 +245,10 @@
       var n = d.outreach.filter(function (o) { return o.status === s; }).length;
       return n ? K.hint(s + ' ' + n, STATUS_HELP[s]) : '';
     }).filter(Boolean);
-    var html = ['<div class="qbar cbar"><select id="orfilter" aria-label="Status">' +
+    var html = [K.hero({ kicker: 'KOL · Outreach', title: 'Outreach', lead: 'One row per invitation. Nothing is sent by the system: copy the text, send it from Pin Wei\'s account, then mark it sent and follow it to the review.', stats: [[list.length, 'invitations'], [cfg.open ? list.filter(function (o) { return cfg.open.indexOf(o.status) >= 0; }).length : 0, 'open']] })];
+    html.push('<div class="qbar cbar"><select id="orfilter" aria-label="Status">' +
       options(['Open', 'All'].concat(cfg.statuses), out.ostatus, function (s) { return s === 'Open' ? 'Open (not finished)' : s === 'All' ? 'All' : s; }) +
-      '</select>' + K.whoBox() + '</div>'];
+      '</select>' + K.whoBox() + '</div>');
     html.push('<p class="qsum">' + list.length + ' invitation' + (list.length === 1 ? '' : 's') + (counts.length ? ' · <span class="small">' + counts.join(' · ') + '</span>' : '') + '</p>');
     if (!d.outreach.length) {
       html.push('<p class="note">No invitations yet. Approve a creator in Review: the invitation is written for you to send.</p>');

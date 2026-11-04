@@ -123,6 +123,79 @@
     });
   }
 
+  /**
+   * The tab bar as a menu on a narrow screen: a trigger with the current tab's name, a panel that opens under it, and
+   * the states the navigation needs — closed (start), open (active), and closed again with the new tab marked
+   * (completed). Escape closes it and puts focus back on the trigger; a link closes it; a tap outside closes it; a
+   * resize past the breakpoint puts it back inline. With reduced motion the panel appears at once, never animating in
+   * from nothing. Safe to call after every redraw: it upgrades a bar once and only refreshes the trigger's label.
+   */
+  function tabMenu(root) {
+    var host = root || document;
+    var bars = host.querySelectorAll ? host.querySelectorAll('nav.tabs') : [];
+    Array.prototype.forEach.call(bars, function (nav) {
+      var wrap = nav.parentNode;
+      if (!wrap || !wrap.classList || !wrap.classList.contains('navmenu')) {
+        wrap = document.createElement('div');
+        wrap.className = 'navmenu';
+        nav.parentNode.insertBefore(wrap, nav);
+        wrap.appendChild(nav);
+      }
+      var trigger = wrap.querySelector('.navtrigger');
+      if (!trigger) {
+        trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'navtrigger';
+        trigger.setAttribute('aria-controls', nav.id || '');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.innerHTML = '<span class="navmark" aria-hidden="true">☰</span> <span class="navlabel"></span>';
+        wrap.insertBefore(trigger, nav);
+        var setOpen = function (open) {
+          wrap.classList.toggle('is-open', open);
+          trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+          if (open) {
+            var first = nav.querySelector('a');
+            if (first) first.focus();
+          } else {
+            trigger.focus();
+          }
+        };
+        trigger.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          setOpen(!wrap.classList.contains('is-open'));
+        });
+        nav.addEventListener('click', function (ev) {
+          if (ev.target && ev.target.tagName === 'A' && wrap.classList.contains('is-open')) {
+            // completed: the tab is chosen, so the menu closes and the bar marks the new one
+            wrap.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+        wrap.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape' && wrap.classList.contains('is-open')) {
+            ev.preventDefault();
+            setOpen(false);
+          }
+        });
+        document.addEventListener('click', function (ev) {
+          if (!wrap.contains(ev.target) && wrap.classList.contains('is-open')) {
+            wrap.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+        window.addEventListener('resize', function () {
+          if (window.innerWidth > 900 && wrap.classList.contains('is-open')) {
+            wrap.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+      var current = nav.querySelector('a.on');
+      var label = trigger.querySelector('.navlabel');
+      if (label) label.textContent = current ? current.textContent.trim() : 'Menu';
+    });
+  }
+
   window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members,
-    noKeyHtml: noKeyHtml, scrollify: scrollify };
+    noKeyHtml: noKeyHtml, scrollify: scrollify, tabMenu: tabMenu };
 })();

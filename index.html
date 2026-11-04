@@ -14,35 +14,62 @@
 <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
 <header class="bar"><div class="wrap"><span class="mark">Pin Wei</span><span class="dot"></span><span class="name">Marketing</span></div></header>
 <main class="wrap">
+  <!-- What this is and the one thing it is for. Everything below serves this sentence. -->
   <section class="hero">
     <p class="eyebrow">Bánh cuốn Pin Wei · TD · BT · LM</p>
     <h1>Pin Wei Marketing</h1>
-    <p class="lead">Posting and creator outreach for the Pin Wei branches, in one place. People decide and send; the tools gather, count and remind.</p>
+    <p class="lead">The week's post, and the food creators to invite. The tools gather, count and remind; a person decides and
+      sends. Nothing here posts, messages or invites anyone by itself.</p>
+    <div class="cta">
+      <a class="open" href="posting/">Open Posting</a>
+      <span class="state" id="state-posting"></span>
+      <a class="open alt" href="kol/">Open KOL</a>
+      <span class="state" id="state-kol"></span>
+    </div>
   </section>
 
   <p class="notice" id="notice" hidden></p>
 
-  <section class="apps">
-    <article class="app">
-      <p class="kicker">Posting</p>
-      <h2>Write once, post everywhere</h2>
-      <p class="desc">Post to the Facebook Page, hand-post to groups from a short queue, and follow the numbers on the dashboard.</p>
-      <ul class="facts">
-        <li>New post, groups queue, dashboard</li>
-        <li>Page numbers refreshed every morning</li>
-      </ul>
-      <div class="foot"><a class="open" href="posting/">Open Posting</a><span class="state" id="state-posting"></span></div>
-    </article>
-    <article class="app">
-      <p class="kicker">KOL</p>
-      <h2>Find small food creators</h2>
-      <p class="desc">Collect creators in Ho Chi Minh City, sort them by fit and score, approve, and follow each invitation to the review.</p>
-      <ul class="facts">
-        <li>Creators, review, outreach</li>
-        <li>TikTok profiles read on schedule</li>
-      </ul>
-      <div class="foot"><a class="open" href="kol/">Open KOL</a><span class="state" id="state-kol"></span></div>
-    </article>
+  <!-- The task, in three steps: a short input-to-output example with the real destinations. -->
+  <section class="flow">
+    <div class="head">
+      <h2>One week, end to end</h2>
+      <p class="muted">Three steps, each on its own page. Every link opens the tab that does the work.</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="n">1</span>
+        <h3>Write the post</h3>
+        <p>One text for the Page, Instagram and the groups. The draft is saved and queued; a person posts it.</p>
+        <p class="where"><a href="posting/#compose">New post</a> · <a href="posting/#week">Groups this week</a></p>
+      </li>
+      <li class="step">
+        <span class="n">2</span>
+        <h3>Invite a creator</h3>
+        <p>The list comes from the search and the bookmark. Approve one and the invitation is written in Vietnamese; you copy
+          it and send it yourself.</p>
+        <p class="where"><a href="kol/#review">Review</a> · <a href="kol/#outreach">Outreach</a></p>
+      </li>
+      <li class="step">
+        <span class="n">3</span>
+        <h3>See what came back</h3>
+        <p>Views and likes per post, replies and reviews per invitation, and the creators whose videos already did well.</p>
+        <p class="where"><a href="posting/#dash">Posting dashboard</a> · <a href="kol/#pinwei">Previous videos</a></p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="setup">
+    <div class="head">
+      <h2>What it needs</h2>
+      <p class="muted">Two spreadsheets hold the data; the pages hold none. A browser needs the key once.</p>
+    </div>
+    <dl class="reqs">
+      <div><dt>Data</dt><dd>Google Sheets <b>Pin Wei Posting</b> and <b>Pin Wei KOL</b> — the Apps Script behind each page.</dd></div>
+      <div><dt>Access</dt><dd>A key per browser, from <b>Pin Wei Posting → Open posting helper</b> and <b>Pin Wei KOL → Open KOL site</b>.
+        <a href="#share">One link can carry it to another computer.</a></dd></div>
+      <div><dt>Bookmarks</dt><dd><b>PW capture</b> and <b>PW creator</b>, installed once from their install pages below.</dd></div>
+    </dl>
   </section>
 
   <section class="marks">

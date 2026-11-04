@@ -329,6 +329,18 @@
     return '<td class="n rt" data-th="' + r[1] + '">' + hint('<span class="' + cls + '">' + rateText(r[0], v) + '</span>', help, 'r') + '</td>';
   }
 
+  /**
+   * The band every tab opens with: what this page is, one line of what it is for, and the two numbers that matter.
+   * Same shape as the Pin Wei tab's hero, so moving between tabs feels like one product.
+   */
+  function hero(o) {
+    var stats = (o.stats || []).filter(function (s) { return s[0] !== null && s[0] !== undefined; }).map(function (s) {
+      return '<div class="phstat"><b>' + esc(String(s[0])) + '</b><span>' + esc(s[1]) + '</span></div>';
+    }).join('');
+    return '<section class="pagehero"><div class="phmain"><p class="phkicker">' + esc(o.kicker) + '</p><h1>' + esc(o.title) + '</h1>' +
+      (o.lead ? '<p class="phlead">' + o.lead + '</p>' : '') + '</div>' +
+      (stats ? '<div class="phstats">' + stats + '</div>' : '') + '</section>';
+  }
   function rateHeads() {
     return RATES.map(function (r) { return '<th class="n">' + hint(r[1], r[2], 'r') + '</th>'; }).join('');
   }
@@ -434,6 +446,7 @@
     $('tabs').innerHTML = TABS.map(function (t) {
       return '<a href="#' + t + '"' + (state.tab === t ? ' class="on" aria-current="page"' : '') + '>' + label[t] + (n[t] ? ' <span class="cnt">' + n[t] + '</span>' : '') + '</a>';
     }).join('') + '<a href="install.html">Bookmark</a>';
+    if (PW.tabMenu) PW.tabMenu();
   }
 
   function render() {
@@ -470,6 +483,8 @@
     if (state.page >= pages) state.page = pages - 1;
     var shown = list.slice(state.page * PAGE, (state.page + 1) * PAGE);
     var out = [];
+    var due = d.creators.filter(function (c) { return c.recapture_due; }).length;
+    out.push(hero({ kicker: 'KOL · Creators', title: 'Creators', lead: 'Every account the search, the bookmark and people have found — newest first. Classify them, then review the ones worth an invitation.', stats: [[d.creators.length, 'accounts'], [d.pending_classification, 'to classify'], [due, 'to capture again']] }));
     out.push('<div class="qbar cbar"><input type="search" id="csearch" placeholder="Find a creator" value="' + esc(state.search) + '">' +
       '<select id="cplatform" aria-label="Platform">' + options(d.platforms, state.platform, 'All platforms') + '</select>' +
       '<select id="cstatus" aria-label="Status">' + options(d.statuses, state.status, 'All statuses') + '</select>' +
@@ -485,7 +500,6 @@
         d.pending_classification + ' new</button>' : ' · all classified') +
         ' <span class="muted small">AI: ' + esc(d.ai_providers.join(' → ')) + '</span>'
       : ' · <span class="small warnc">No AI key in Script Properties: classify by hand.</span>';
-    var due = d.creators.filter(function (c) { return c.recapture_due; }).length;
     out.push('<p class="qsum">' + list.length + (list.length === d.creators.length ? '' : ' of ' + d.creators.length) + ' creators' + ai +
       ' <span class="small" id="cmsg">' + state.classMsg + '</span></p>');
     out.push('<p class="small muted">' + dailyLine(d.daily) + (due ? ' · ' + hint('<span class="warnc">' + due + ' to capture again</span>',
@@ -613,7 +627,7 @@
     }).catch(showError);
   }
 
-  window.KOL = { state: state, hint: hint, classLine: classLine, rateHeads: rateHeads, rateCells: rateCells, rateText: rateText,
+  window.KOL = { state: state, hero: hero, hint: hint, classLine: classLine, rateHeads: rateHeads, rateCells: rateCells, rateText: rateText,
     sortList: sortList, sortSelect: sortSelect, excludedLine: excludedLine, ago: ago, num: num, reviewQueue: reviewQueue,
     openOutreach: openOutreach, reload: reload, whoBox: whoBox, showError: showError };
   load();

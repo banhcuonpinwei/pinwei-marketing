@@ -123,7 +123,8 @@
   function draw() {
     var d = data;
     var t = d.todo;
-    var out = ['<p class="qsum">Counted from the sheets just now. <button type="button" class="link-btn" id="kdrefresh">Refresh</button></p>'];
+    var out = [K.hero({ kicker: 'KOL · Today', title: 'What needs doing today', lead: 'Counted from the sheets each time this tab opens: who to review, what to send, what to follow up, and whose video did well.', stats: [[t.review.n, 'to review'], [t.send.length + t.follow_up.length, 'to send or chase'], [d.pinwei && d.pinwei.videos ? d.pinwei.rebook : 0, 'to book again']] })];
+    out.push('<p class="qsum">Counted from the sheets just now. <button type="button" class="link-btn" id="kdrefresh">Refresh</button></p>');
     out.push('<div class="tiles">' + tile('To review', K.num(t.review.n), 'creators waiting', 'review') + tile('To send', K.num(t.send.length), 'invitations written', 'outreach') +
       tile('To follow up', K.num(t.follow_up.length), 'no reply for ' + t.follow_up_days + '+ days', 'outreach') +
       tile('Visits this week', K.num(t.visits.filter(function (v) { return !v.passed; }).length), 'next 7 days', 'outreach') + '</div>');
