@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="hub.css">
-<link rel="stylesheet" href="nav.css">
+<link rel="stylesheet" href="hub.css?v=3">
+<link rel="stylesheet" href="nav.css?v=3">
 </head>
 <body>
 <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
@@ -26,11 +26,9 @@
   </div>
 </header>
 <main class="wrap" id="content" tabindex="-1">
-  <!-- What this is and the one thing it is for. The Pin Wei mark sits behind the title, faint, and drifts with the
-       pointer and the scroll (art.js); with reduced motion it simply stays put. -->
+  <!-- What this is and the one thing it is for. The Pin Wei mark sits behind the title, faint and still. -->
   <section class="hero" id="hero">
     <div class="hero-mark" aria-hidden="true"><img src="pinwei-logo.png" alt=""></div>
-    <div class="hero-light" aria-hidden="true"></div>
     <div class="hero-copy">
       <p class="eyebrow"><span class="rule" aria-hidden="true"></span>Bánh cuốn Pin Wei · TD · BT · LM</p>
       <h1><span class="l1">Pin Wei</span> <span class="l2">Marketing</span></h1>
@@ -44,16 +42,10 @@
     <a class="scrollcue" href="#week">One week, end to end</a>
   </section>
 
-  <!-- A slow band of the week's steps: the real names of the tabs, nothing more. -->
-  <div class="ticker" aria-hidden="true"><div class="ticker-track">
-    <span>Write the post</span><span>Post in the groups</span><span>Check D+1</span><span>Record D+3</span><span>Review creators</span><span>Send the invitation</span><span>See what came back</span>
-    <span>Write the post</span><span>Post in the groups</span><span>Check D+1</span><span>Record D+3</span><span>Review creators</span><span>Send the invitation</span><span>See what came back</span>
-  </div></div>
-
   <p class="notice" id="notice" hidden></p>
 
   <!-- The task, in three steps: a short input-to-output example with the real destinations. -->
-  <section class="flow reveal" id="week">
+  <section class="flow" id="week">
     <div class="head">
       <h2>One week, end to end</h2>
       <p class="muted">Three steps, each on its own page. Every link opens the tab that does the work.</p>
@@ -81,7 +73,7 @@
     </ol>
   </section>
 
-  <section class="setup reveal">
+  <section class="setup">
     <div class="head">
       <h2>What it needs</h2>
       <p class="muted">Two spreadsheets hold the data; the pages hold none. A browser needs the key once.</p>
@@ -94,7 +86,7 @@
     </dl>
   </section>
 
-  <section class="marks reveal" id="bookmarks">
+  <section class="marks" id="bookmarks">
     <div class="head">
       <h2>Bookmarks</h2>
       <p class="muted">Put them on the Chrome bookmarks bar (Ctrl+Shift+B shows the bar). Each one carries its key, so keep them on Pin Wei computers only.</p>
@@ -120,7 +112,6 @@
   <footer class="end muted">This page holds no data. The data lives in the Pin Wei Posting and Pin Wei KOL spreadsheets.</footer>
 </main>
 <script src="hub.js"></script>
-<script src="art.js"></script>
 <!-- the bar's behaviour (Menu drawer) comes from the Posting site's helpers, one copy for all three sites -->
 <script src="posting/common.js"></script>
 <script>PW.navbar();</script>
