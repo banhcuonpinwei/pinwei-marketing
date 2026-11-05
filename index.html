@@ -13,6 +13,7 @@
 </head>
 <body>
 <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
+<div class="grain" aria-hidden="true"></div>
 <a class="skip" href="#content">Skip to content</a>
 <header class="pwbar">
   <div class="wrap pwbar-in">
@@ -20,49 +21,59 @@
     <button type="button" class="menubtn" aria-expanded="false" aria-controls="pwmenu">Menu</button>
     <div class="pwmenu" id="pwmenu">
       <nav class="sitenav" aria-label="Pin Wei Marketing"><a href="./" aria-current="page">Home</a><a href="posting/">Posting</a><a href="kol/">KOL</a></nav>
-      <div class="pwacts"><a class="quiet" href="#bookmarks">Bookmarks</a><a class="cta" href="posting/#compose">Write this week's post</a></div>
+      <div class="pwacts"><a class="quiet" href="#bookmarks">Bookmarks</a><a class="pwcta" href="posting/#compose">Write this week's post</a></div>
     </div>
   </div>
 </header>
 <main class="wrap" id="content" tabindex="-1">
-  <!-- What this is and the one thing it is for. Everything below serves this sentence. -->
-  <section class="hero">
-    <p class="eyebrow">Bánh cuốn Pin Wei · TD · BT · LM</p>
-    <h1>Pin Wei Marketing</h1>
-    <p class="lead">The week's post, and the food creators to invite. The tools gather, count and remind; a person decides and
-      sends. Nothing here posts, messages or invites anyone by itself.</p>
-    <div class="cta">
-      <a class="open" href="posting/">Open Posting</a>
-      <span class="state" id="state-posting"></span>
-      <a class="open alt" href="kol/">Open KOL</a>
-      <span class="state" id="state-kol"></span>
+  <!-- What this is and the one thing it is for. The Pin Wei mark sits behind the title, faint, and drifts with the
+       pointer and the scroll (art.js); with reduced motion it simply stays put. -->
+  <section class="hero" id="hero">
+    <div class="hero-mark" aria-hidden="true"><img src="pinwei-logo.png" alt=""></div>
+    <div class="hero-light" aria-hidden="true"></div>
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="rule" aria-hidden="true"></span>Bánh cuốn Pin Wei · TD · BT · LM</p>
+      <h1><span class="l1">Pin Wei</span> <span class="l2">Marketing</span></h1>
+      <p class="lead">The week's post, and the food creators to invite. The tools gather, count and remind; a person decides and
+        sends. Nothing here posts, messages or invites anyone by itself.</p>
+      <div class="cta">
+        <div class="go"><a class="open" href="posting/">Open Posting</a><span class="state" id="state-posting"></span></div>
+        <div class="go"><a class="open alt" href="kol/">Open KOL</a><span class="state" id="state-kol"></span></div>
+      </div>
     </div>
+    <a class="scrollcue" href="#week">One week, end to end</a>
   </section>
+
+  <!-- A slow band of the week's steps: the real names of the tabs, nothing more. -->
+  <div class="ticker" aria-hidden="true"><div class="ticker-track">
+    <span>Write the post</span><span>Post in the groups</span><span>Check D+1</span><span>Record D+3</span><span>Review creators</span><span>Send the invitation</span><span>See what came back</span>
+    <span>Write the post</span><span>Post in the groups</span><span>Check D+1</span><span>Record D+3</span><span>Review creators</span><span>Send the invitation</span><span>See what came back</span>
+  </div></div>
 
   <p class="notice" id="notice" hidden></p>
 
   <!-- The task, in three steps: a short input-to-output example with the real destinations. -->
-  <section class="flow">
+  <section class="flow reveal" id="week">
     <div class="head">
       <h2>One week, end to end</h2>
       <p class="muted">Three steps, each on its own page. Every link opens the tab that does the work.</p>
     </div>
     <ol class="steps">
       <li class="step">
-        <span class="n">1</span>
+        <span class="n" aria-hidden="true">01</span>
         <h3>Write the post</h3>
         <p>One text for the Page, Instagram and the groups. The draft is saved and queued; a person posts it.</p>
         <p class="where"><a href="posting/#compose">New post</a> · <a href="posting/#week">Groups this week</a></p>
       </li>
       <li class="step">
-        <span class="n">2</span>
+        <span class="n" aria-hidden="true">02</span>
         <h3>Invite a creator</h3>
         <p>The list comes from the search and the bookmark. Approve one and the invitation is written in Vietnamese; you copy
           it and send it yourself.</p>
         <p class="where"><a href="kol/#review">Review</a> · <a href="kol/#outreach">Outreach</a></p>
       </li>
       <li class="step">
-        <span class="n">3</span>
+        <span class="n" aria-hidden="true">03</span>
         <h3>See what came back</h3>
         <p>Views and likes per post, replies and reviews per invitation, and the creators whose videos already did well.</p>
         <p class="where"><a href="posting/#dash">Posting dashboard</a> · <a href="kol/#pinwei">Previous videos</a></p>
@@ -70,7 +81,7 @@
     </ol>
   </section>
 
-  <section class="setup">
+  <section class="setup reveal">
     <div class="head">
       <h2>What it needs</h2>
       <p class="muted">Two spreadsheets hold the data; the pages hold none. A browser needs the key once.</p>
@@ -83,7 +94,7 @@
     </dl>
   </section>
 
-  <section class="marks" id="bookmarks">
+  <section class="marks reveal" id="bookmarks">
     <div class="head">
       <h2>Bookmarks</h2>
       <p class="muted">Put them on the Chrome bookmarks bar (Ctrl+Shift+B shows the bar). Each one carries its key, so keep them on Pin Wei computers only.</p>
@@ -109,6 +120,7 @@
   <footer class="end muted">This page holds no data. The data lives in the Pin Wei Posting and Pin Wei KOL spreadsheets.</footer>
 </main>
 <script src="hub.js"></script>
+<script src="art.js"></script>
 <!-- the bar's behaviour (Menu drawer) comes from the Posting site's helpers, one copy for all three sites -->
 <script src="posting/common.js"></script>
 <script>PW.navbar();</script>
