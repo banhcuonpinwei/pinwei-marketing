@@ -10,15 +10,26 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="top"><div class="wrap wide"><div class="brand"><img src="pinwei-mark.jpg" alt="" class="mark"><a href="../">Pin Wei Marketing</a><span class="sep">/</span><a href="./">Posting</a></div></div></header>
-<main class="wrap wide">
-  <nav class="tabs" id="tabs">
-    <a href="#compose" data-tab="compose">New post</a>
-    <a href="#week" data-tab="week">Groups this week</a>
-    <a href="#check" data-tab="check">Check</a>
-    <a href="#dash" data-tab="dash">Dashboard</a>
-    <a href="#plan" data-tab="plan">Content plan</a>
-  </nav>
+<a class="skip" href="#content">Skip to content</a>
+<header class="pwbar">
+  <div class="wrap pwbar-in">
+    <a class="wordmark" href="../"><img src="pinwei-mark.jpg" alt="" width="28" height="28"><span>Pin Wei Marketing</span></a>
+    <button type="button" class="menubtn" aria-expanded="false" aria-controls="pwmenu">Menu</button>
+    <div class="pwmenu" id="pwmenu">
+      <nav class="sitenav" aria-label="Pin Wei Marketing"><a href="../">Home</a><a href="./" aria-current="page">Posting</a><a href="../kol/">KOL</a></nav>
+      <nav class="tabs" id="tabs" aria-label="Posting sections">
+        <a href="#compose" data-tab="compose">New post</a>
+        <a href="#week" data-tab="week">Groups this week</a>
+        <a href="#check" data-tab="check">Check</a>
+        <a href="#dash" data-tab="dash">Dashboard</a>
+        <a href="#plan" data-tab="plan">Content plan</a>
+      </nav>
+      <div class="pwacts"><a class="quiet" href="install.html">Bookmark</a><a class="cta" href="#compose">New post</a></div>
+    </div>
+  </div>
+</header>
+<main class="wrap wide" id="content" tabindex="-1">
+  <div id="pagehead"></div>
   <div id="error"></div>
   <section id="t-compose" class="tab-body"><p class="muted">Loading…</p></section>
   <section id="t-week" class="tab-body" hidden></section>

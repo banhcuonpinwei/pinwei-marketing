@@ -98,11 +98,24 @@
     return n === null || n === undefined ? '-' : Number(n).toLocaleString('en-US');
   }
 
-  /** Shown when there is no key in this browser. */
+  /**
+   * Shown when there is no key in this browser (or the key is wrong): what this browser needs, each item named, and
+   * where to read more — a setup state, not a blank page.
+   */
   function noKeyHtml() {
-    return '<div class="panel"><p><b>This browser does not have the key yet.</b></p>' +
-      '<p class="muted">In the spreadsheet, use <b>' + (CONFIG.keyMenu || 'Pin Wei Posting &gt; Open posting helper') + '</b> once on this computer. ' +
-      'After that this page opens directly.</p></div>';
+    var menu = CONFIG.keyMenu || 'Pin Wei Posting &gt; Open posting helper';
+    var sheet = CONFIG.sheetName || 'Pin Wei Posting';
+    var mark = CONFIG.bookmarkName || 'PW capture';
+    return '<section class="panel setup" aria-labelledby="setup-h"><h2 id="setup-h">Set up this browser</h2>' +
+      '<p class="muted">The data lives in the <b>' + sheet + '</b> spreadsheet. This browser does not have its key yet, ' +
+      'so the page cannot read it. Once per computer:</p>' +
+      '<ol class="setup-list">' +
+      '<li><b>The key.</b> In the spreadsheet, choose <b>' + menu + '</b>. This page opens and remembers the key. ' +
+      'A colleague can also send an access link from the main page; open it once here.</li>' +
+      '<li><b>The ' + mark + ' bookmark.</b> Installed once, from the bookmark page.</li>' +
+      '</ol>' +
+      '<p class="setup-links"><a class="btn" href="install.html">Open the bookmark page</a> ' +
+      '<a href="../">How Pin Wei Marketing works</a></p></section>';
   }
 
   /**
@@ -124,102 +137,148 @@
   }
 
   /**
-   * The navigation, at every width: one button that names the section you are in, and a vertical panel that drops
-   * under it — the shape the reference asked for. Three states are explicit: closed (start: the button says the current
-   * section), open (active: the panel lists the sections and marks the current one), and closed again with the new
-   * section marked (completed).
-   *
-   * Keys: Enter/Space opens, ArrowDown/ArrowUp move through the items, Home/End jump, Escape closes and puts focus back
-   * on the button, Tab out closes. A link closes it, so does a click outside. With reduced motion the panel is simply
-   * there: no transition, and nothing is ever left hidden behind an animation. Safe after every redraw: it upgrades a
-   * bar once and only refreshes the labels.
+   * The sticky bar (docs/design-brief.md, part 2). Each page carries the markup: header.pwbar with the wordmark, the
+   * site links, this site's tabs (nav.tabs, drawn by the page's script) and the action. This adds the behaviour:
+   *  - More: past five tabs the rest go into a More menu (click or ArrowDown opens, arrows move, Escape closes).
+   *  - Menu: on narrow screens one labelled button opens the bar as a side drawer under it; Escape, Close, a click
+   *    outside or a link closes it, focus stays inside while it is open and goes back to the button after.
+   *  - The current tab carries aria-current; the page's scroll padding follows the bar's height (--pwbar-h).
+   * Safe to call after every redraw of the tabs: the drawer is wired once, the More menu is rebuilt.
    */
-  function tabMenu(root) {
-    var host = root || document;
-    var bars = host.querySelectorAll ? host.querySelectorAll('nav.tabs') : [];
-    Array.prototype.forEach.call(bars, function (nav) {
-      var wrap = nav.parentNode;
-      if (!wrap || !wrap.classList || !wrap.classList.contains('navmenu')) {
-        wrap = document.createElement('div');
-        wrap.className = 'navmenu';
-        nav.parentNode.insertBefore(wrap, nav);
-        wrap.appendChild(nav);
-      }
-      var trigger = wrap.querySelector('.navtrigger');
-      if (!trigger) {
-        trigger = document.createElement('button');
-        trigger.type = 'button';
-        trigger.className = 'navtrigger';
-        trigger.setAttribute('aria-controls', nav.id || '');
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.setAttribute('aria-haspopup', 'true');
-        // one button, two icon states: the hamburger while the menu is closed, the close mark while it is open. They
-        // never show together, because the same state class decides which one is displayed.
-        trigger.innerHTML = '<span class="navicon" aria-hidden="true"><span class="ico-open"></span><span class="ico-close">×</span></span>' +
-          '<span class="navlabel"></span><span class="navchev" aria-hidden="true"></span>';
-        wrap.insertBefore(trigger, nav);
+  var MAX_TABS = 5;
 
-        var items = function () { return Array.prototype.slice.call(nav.querySelectorAll('a')); };
-        var isOpen = function () { return wrap.classList.contains('is-open'); };
-        var setOpen = function (open, back) {
-          wrap.classList.toggle('is-open', open);
-          trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-          if (open) {
-            var current = nav.querySelector('a.on') || items()[0];
-            if (current) current.focus();
-          } else if (back !== false) {
-            trigger.focus();
-          }
-        };
-        trigger.addEventListener('click', function (ev) { ev.preventDefault(); setOpen(!isOpen()); });
-        nav.addEventListener('click', function (ev) {
-          var t = ev.target;
-          if (t && t.tagName === 'A' && isOpen()) setOpen(false, false); // completed: focus follows the new page
-        });
-        wrap.addEventListener('keydown', function (ev) {
-          if (!isOpen()) return;
-          var list = items();
-          var at = list.indexOf(document.activeElement);
-          if (ev.key === 'Escape') { ev.preventDefault(); setOpen(false); return; }
-          if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-            ev.preventDefault();
-            var step = ev.key === 'ArrowDown' ? 1 : -1;
-            var next = list[(at + step + list.length) % list.length];
-            if (next) next.focus();
-          } else if (ev.key === 'Home' || ev.key === 'End') {
-            ev.preventDefault();
-            var edge = ev.key === 'Home' ? list[0] : list[list.length - 1];
-            if (edge) edge.focus();
-          }
-        });
-        document.addEventListener('click', function (ev) { if (!wrap.contains(ev.target) && isOpen()) setOpen(false, false); });
-      }
-      // the label names the section: the marked one, else the one the address points at, else the first
-      var current = nav.querySelector('a.on');
-      if (!current) {
-        var want = String((window.location && window.location.hash) || '').replace(/^#/, '');
-        current = Array.prototype.filter.call(nav.querySelectorAll('a'), function (a) {
+  function navbar() {
+    var bar = document.querySelector('header.pwbar');
+    if (!bar) return;
+    var nav = bar.querySelector('nav.tabs');
+    if (nav) {
+      if (!nav.querySelector('a.on')) {
+        // before the page's script marks one: the tab the address points at, else the first
+        var want = String(location.hash || '').replace(/^#/, '');
+        var hit = Array.prototype.filter.call(nav.querySelectorAll('a'), function (a) {
           return a.getAttribute('data-tab') === want || a.getAttribute('href') === '#' + want;
         })[0] || nav.querySelector('a');
+        if (hit) hit.classList.add('on');
       }
-      var label = trigger.querySelector('.navlabel');
-      if (label) {
-        // the count belongs to the list, not to the button: "Review 56" inside the panel, "Review" on the button
-        var name = '';
-        if (current) {
-          var copy = current.cloneNode(true);
-          var badge = copy.querySelector('.cnt');
-          if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
-          name = String(copy.textContent || '').replace(/\s+/g, ' ').trim();
-        }
-        label.textContent = name;
-      }
+      moreMenu(nav);
       Array.prototype.forEach.call(nav.querySelectorAll('a'), function (a) {
         if (a.classList.contains('on')) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');
       });
-    });
+      var more = nav.querySelector('.morebtn');
+      if (more) more.classList.toggle('on', !!nav.querySelector('.morelist a.on'));
+    }
+    if (bar.getAttribute('data-ready')) return;
+    bar.setAttribute('data-ready', '1');
+    drawer(bar);
+    var fit = function () { document.documentElement.style.setProperty('--pwbar-h', bar.offsetHeight + 'px'); };
+    fit();
+    window.addEventListener('resize', fit);
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(bar);
   }
+
+  function moreMenu(nav) {
+    var old = nav.querySelector('.more');
+    if (old) {
+      Array.prototype.slice.call(old.querySelectorAll('a')).forEach(function (a) { nav.insertBefore(a, old); });
+      nav.removeChild(old);
+    }
+    var links = Array.prototype.filter.call(nav.children, function (el) { return el.tagName === 'A'; });
+    if (links.length <= MAX_TABS) return;
+    var more = document.createElement('div');
+    more.className = 'more';
+    more.innerHTML = '<button type="button" class="morebtn" aria-expanded="false" aria-haspopup="true">More</button>' +
+      '<div class="morelist" hidden></div>';
+    var btn = more.querySelector('.morebtn');
+    var list = more.querySelector('.morelist');
+    btn.setAttribute('aria-controls', (nav.id || 'tabs') + '-more');
+    list.id = (nav.id || 'tabs') + '-more';
+    links.slice(MAX_TABS).forEach(function (a) { list.appendChild(a); });
+    nav.appendChild(more);
+    var items = function () { return Array.prototype.slice.call(list.querySelectorAll('a')); };
+    var open = function (on, focusFirst) {
+      list.hidden = !on;
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      if (on && focusFirst && items()[0]) items()[0].focus();
+    };
+    btn.addEventListener('click', function () { open(list.hidden, false); });
+    btn.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); open(true, true); }
+    });
+    more.addEventListener('keydown', function (ev) {
+      var all = items();
+      var at = all.indexOf(document.activeElement);
+      if (ev.key === 'Escape' && !list.hidden) { ev.preventDefault(); ev.stopPropagation(); open(false); btn.focus(); }
+      else if ((ev.key === 'ArrowDown' || ev.key === 'ArrowUp') && at >= 0) {
+        ev.preventDefault();
+        all[(at + (ev.key === 'ArrowDown' ? 1 : -1) + all.length) % all.length].focus();
+      }
+    });
+    more.addEventListener('focusout', function (ev) { if (!more.contains(ev.relatedTarget)) open(false); });
+    list.addEventListener('click', function () { open(false); });
+  }
+
+  function drawer(bar) {
+    var btn = bar.querySelector('.menubtn');
+    var menu = bar.querySelector('.pwmenu');
+    if (!btn || !menu) return;
+    var scrim = document.createElement('div');
+    scrim.className = 'pwscrim';
+    scrim.hidden = true;
+    document.body.appendChild(scrim);
+    var isOpen = function () { return bar.classList.contains('is-open'); };
+    var focusables = function () {
+      return [btn].concat(Array.prototype.filter.call(menu.querySelectorAll('a, button'), function (el) { return el.offsetParent !== null; }));
+    };
+    var set = function (on, back) {
+      bar.classList.toggle('is-open', on);
+      document.documentElement.classList.toggle('pw-locked', on);
+      scrim.hidden = !on;
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      btn.textContent = on ? 'Close' : 'Menu';
+      if (on) {
+        // the tab you are on, else this site's link: the drawer opens where you are
+        var first = menu.querySelector('nav.tabs [aria-current="page"]') || menu.querySelector('[aria-current="page"]') || menu.querySelector('a');
+        if (first) first.focus();
+      } else if (back !== false) {
+        btn.focus();
+      }
+    };
+    btn.addEventListener('click', function () { set(!isOpen()); });
+    scrim.addEventListener('click', function () { set(false); });
+    menu.addEventListener('click', function (ev) {
+      var a = ev.target && ev.target.closest ? ev.target.closest('a') : null;
+      if (a && isOpen()) set(false, false); // the new page (or tab) takes the focus
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (!isOpen()) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); set(false); return; }
+      if (ev.key !== 'Tab') return;
+      var all = focusables();
+      var at = all.indexOf(document.activeElement);
+      if (ev.shiftKey && at <= 0) { ev.preventDefault(); all[all.length - 1].focus(); }
+      else if (!ev.shiftKey && at === all.length - 1) { ev.preventDefault(); all[0].focus(); }
+    });
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(max-width: 860px)');
+      var wide = function () { if (!mq.matches && isOpen()) set(false, false); };
+      if (mq.addEventListener) mq.addEventListener('change', wide); else if (mq.addListener) mq.addListener(wide);
+    }
+  }
+
+  /**
+   * The band every tab opens with (docs/design-brief.md, part 1): what the page is for, one line that reads as input to
+   * output, and the numbers that decide what to do next. o = {kicker, title, lead (HTML), stats: [[value, label], …]}.
+   */
+  function hero(o) {
+    var stats = (o.stats || []).filter(function (s) { return s[0] !== null && s[0] !== undefined; }).map(function (s) {
+      return '<div class="phstat"><b>' + esc(String(s[0])) + '</b><span>' + esc(s[1]) + '</span></div>';
+    }).join('');
+    return '<section class="pagehero"><div class="phmain"><p class="phkicker">' + esc(o.kicker) + '</p><h1>' + esc(o.title) + '</h1>' +
+      (o.lead ? '<p class="phlead">' + o.lead + '</p>' : '') + '</div>' +
+      (stats ? '<div class="phstats">' + stats + '</div>' : '') + '</section>';
+  }
+
   window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members,
-    noKeyHtml: noKeyHtml, scrollify: scrollify, tabMenu: tabMenu };
+    noKeyHtml: noKeyHtml, scrollify: scrollify, navbar: navbar, tabMenu: navbar, hero: hero };
 })();

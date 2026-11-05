@@ -10,8 +10,18 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="top"><div class="wrap narrow"><div class="brand"><img src="pinwei-mark.jpg" alt="" class="mark"><a href="../">Pin Wei Marketing</a><span class="sep">/</span><a href="./">Posting</a></div></div></header>
-<main class="wrap narrow" id="main"><p class="muted">Loading…</p></main>
+<a class="skip" href="#main">Skip to content</a>
+<header class="pwbar">
+  <div class="wrap pwbar-in">
+    <a class="wordmark" href="../"><img src="pinwei-mark.jpg" alt="" width="28" height="28"><span>Pin Wei Marketing</span></a>
+    <button type="button" class="menubtn" aria-expanded="false" aria-controls="pwmenu">Menu</button>
+    <div class="pwmenu" id="pwmenu">
+      <nav class="sitenav" aria-label="Pin Wei Marketing"><a href="../">Home</a><a href="./" aria-current="page">Posting</a><a href="../kol/">KOL</a></nav>
+      <div class="pwacts"><a class="quiet" href="install.html">Bookmark</a><a class="cta" href="./#compose">New post</a></div>
+    </div>
+  </div>
+</header>
+<main class="wrap narrow" id="main" tabindex="-1"><p class="muted">Loading…</p></main>
 <script src="config.js"></script>
 <script src="common.js"></script>
 <script src="bookmarklet.js"></script>

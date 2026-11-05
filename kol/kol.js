@@ -445,7 +445,7 @@
     var label = { creators: 'Creators', review: 'Review', outreach: 'Outreach', pinwei: 'PinWei videos', dashboard: 'Dashboard' };
     $('tabs').innerHTML = TABS.map(function (t) {
       return '<a href="#' + t + '"' + (state.tab === t ? ' class="on" aria-current="page"' : '') + '>' + label[t] + (n[t] ? ' <span class="cnt">' + n[t] + '</span>' : '') + '</a>';
-    }).join('') + '<a href="install.html">Bookmark</a>';
+    }).join(''); // the bookmark page is the bar's quiet link
     if (PW.tabMenu) PW.tabMenu();
   }
 

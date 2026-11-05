@@ -9,11 +9,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="hub.css">
+<link rel="stylesheet" href="nav.css">
 </head>
 <body>
 <div class="glow" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
-<header class="top"><div class="wrap"><div class="brand"><img src="pinwei-mark.jpg" alt="" class="mark"><a href="./">Pin Wei Marketing</a></div></div></header>
-<main class="wrap">
+<a class="skip" href="#content">Skip to content</a>
+<header class="pwbar">
+  <div class="wrap pwbar-in">
+    <a class="wordmark" href="./"><img src="pinwei-mark.jpg" alt="" width="28" height="28"><span>Pin Wei Marketing</span></a>
+    <button type="button" class="menubtn" aria-expanded="false" aria-controls="pwmenu">Menu</button>
+    <div class="pwmenu" id="pwmenu">
+      <nav class="sitenav" aria-label="Pin Wei Marketing"><a href="./" aria-current="page">Home</a><a href="posting/">Posting</a><a href="kol/">KOL</a></nav>
+      <div class="pwacts"><a class="quiet" href="#bookmarks">Bookmarks</a><a class="cta" href="posting/#compose">Write this week's post</a></div>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="content" tabindex="-1">
   <!-- What this is and the one thing it is for. Everything below serves this sentence. -->
   <section class="hero">
     <p class="eyebrow">Bánh cuốn Pin Wei · TD · BT · LM</p>
@@ -72,7 +83,7 @@
     </dl>
   </section>
 
-  <section class="marks">
+  <section class="marks" id="bookmarks">
     <div class="head">
       <h2>Bookmarks</h2>
       <p class="muted">Put them on the Chrome bookmarks bar (Ctrl+Shift+B shows the bar). Each one carries its key, so keep them on Pin Wei computers only.</p>
@@ -98,5 +109,8 @@
   <footer class="end muted">This page holds no data. The data lives in the Pin Wei Posting and Pin Wei KOL spreadsheets.</footer>
 </main>
 <script src="hub.js"></script>
+<!-- the bar's behaviour (Menu drawer) comes from the Posting site's helpers, one copy for all three sites -->
+<script src="posting/common.js"></script>
+<script>PW.navbar();</script>
 </body>
 </html>

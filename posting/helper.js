@@ -45,8 +45,45 @@
     }
     // The dashboard has its own call, made the first time its tab opens (dashboard.js).
     if (tab === 'dash' && window.PW_DASHBOARD) window.PW_DASHBOARD.show();
-    // narrow screens: the same bar as a menu, naming the tab that is open
-    if (PW.tabMenu) PW.tabMenu();
+    renderHead();
+    PW.navbar();
+  }
+
+  /**
+   * The band at the top of every tab (docs/design-brief.md): the task, one line from input to output, and the numbers
+   * that decide what to do next. Without data yet it still says what the tab is for.
+   */
+  function renderHead() {
+    var tab = tabFromHash();
+    var d = state.data;
+    var thisWeek = d ? (d.content_plan || []).filter(function (x) { return x.week === d.week; }).length : null;
+    var o;
+    if (tab === 'week') {
+      var q = d && d.queue;
+      var left = q ? q.groups.filter(function (g) { return !queue.done[g.group_id]; }).length : null;
+      o = { title: 'Post in the groups', stats: q ? [[left, 'groups left'], [q.groups_total, 'groups in use']] : [],
+        lead: '<b>Copy &amp; open</b> puts the week\'s text on the clipboard and opens the group. Paste it, post it, then save the ' +
+          'link here. Nothing is posted to a group by itself.' };
+    } else if (tab === 'check') {
+      o = { title: 'Check the group posts', stats: d ? [[d.d1.posts.length, 'to check (D+1)'], [d.d3.posts.length, 'to record (D+3)']] : [],
+        lead: 'A day after posting, open each group post and say whether it is live, still pending or removed. Three days after, ' +
+          'read its numbers with the <b>PW capture</b> bookmark.' };
+    } else if (tab === 'dash') {
+      o = { title: 'How the posts did', stats: [],
+        lead: 'The last eight weeks of Page, Instagram and group posts: what went out, and the reactions and comments that came back.' };
+    } else if (tab === 'plan') {
+      o = { title: 'Content plan', stats: d ? [[thisWeek, 'posts this week'], [(d.content_plan || []).length, 'posts in all']] : [],
+        lead: 'Every post written in New post, by week, newest first. Open one to change it in New post.' };
+    } else {
+      var dry = d && (d.meta.Page || d.meta.IG);
+      o = { title: 'Write the week\'s post', stats: d ? [[d.groups_due, 'groups due this week'], [thisWeek, 'posts this week']] : [],
+        lead: 'One text in, three places out: the Facebook Page and Instagram post from here' +
+          (dry ? ' (a dry run until Meta is switched on)' : '') + ', and the groups get it in <a href="#week">Groups this week</a>, ' +
+          'where a person posts it.' };
+    }
+    var label = { compose: 'New post', week: 'Groups this week', check: 'Check', dash: 'Dashboard', plan: 'Content plan' }[tab];
+    o.kicker = 'Posting · ' + label;
+    $('pagehead').innerHTML = PW.hero(o);
   }
 
   function showError(err) {
@@ -77,6 +114,7 @@
       renderD1();
       renderD3();
       renderPlan();
+      renderHead();
     }, showError);
   }
 
@@ -310,8 +348,7 @@
   function renderPlan() {
     var d = state.data;
     var list = d.content_plan || [];
-    var out = ['<p class="muted">What is posted, week by week. Every post written in New post lands here.</p>',
-      '<div class="card ai-card"><div class="row ai-head"><b>AI suggestions</b><span class="tag">Coming later</span></div>' +
+    var out = ['<div class="card ai-card"><div class="row ai-head"><b>AI suggestions</b><span class="tag">Coming later</span></div>' +
       '<p class="muted">Later, AI will read the Dashboard numbers and the past posts and suggest what to post next week: ' +
       'topic, branch, channels and a first text. You pick one, it opens in New post, and you edit and post it as usual. ' +
       'Nothing is suggested yet.</p></div>'];
@@ -429,6 +466,7 @@
     $('t-week').innerHTML = out.join('');
     bindWeekTop(q);
     bindWeekRows(q);
+    if (state.data) renderHead(); // the groups-left number follows each save
   }
 
   function bindWeekTop(q) {
@@ -759,9 +797,10 @@
   Array.prototype.forEach.call(document.querySelectorAll('.subtab'), function (b) {
     b.addEventListener('click', function () { location.hash = '#' + b.getAttribute('data-day'); });
   });
-  // the menu exists before the data does, so the page is navigable even when the key is missing
-  if (PW.tabMenu) PW.tabMenu();
+  // the bar exists before the data does, so the page is navigable even when the key is missing
+  PW.navbar();
   if (!PW.token()) {
+    renderHead();
     $('t-compose').innerHTML = PW.noKeyHtml();
     return;
   }

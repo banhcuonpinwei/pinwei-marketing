@@ -5,4 +5,6 @@ window.PW_CONFIG = {
   api: 'https://script.google.com/macros/s/AKfycbwUdwdnk5dVwgfNWYH6fE6rC-uyEDF7DJpm8k8Y7_DC3jLxHV7M_TUXg6f7DYS3XGl_/exec',
   keyStore: 'pwkol_k',
   keyMenu: 'Pin Wei KOL &gt; Open KOL site',
+  sheetName: 'Pin Wei KOL',
+  bookmarkName: 'PW creator',
 };
