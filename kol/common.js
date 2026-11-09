@@ -62,6 +62,37 @@
       });
   }
 
+  var LAST_STORE = KEY_STORE + '_last_';
+
+  /**
+   * The answer an API call gave last time in this browser, {at, data} or null: a page shows it at once while
+   * the fresh answer comes (Apps Script needs a few seconds), then draws the fresh one.
+   */
+  function remembered(action) {
+    try {
+      var o = JSON.parse(localStorage.getItem(LAST_STORE + action) || 'null');
+      return o && o.data ? o : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function keep(action, data) {
+    try { localStorage.setItem(LAST_STORE + action, JSON.stringify({ at: Date.now(), data: data })); } catch (e) { /* full or no storage */ }
+  }
+
+  function forget(action) {
+    try { localStorage.removeItem(LAST_STORE + action); } catch (e) { /* no storage */ }
+  }
+
+  /** The line above the page while the last answer is shown: when it is from; hidden once the fresh one is in. */
+  function staleNote(o) {
+    var el = document.getElementById('stale');
+    if (!el) return;
+    el.hidden = !o;
+    if (o) el.textContent = 'Showing what was here at ' + new Date(o.at).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) + '. Updating…';
+  }
+
   function esc(s) {
     return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -279,6 +310,6 @@
       (stats ? '<div class="phstats">' + stats + '</div>' : '') + '</section>';
   }
 
-  window.PW = { key: '', hashParams: hashParams, token: token, api: api, esc: esc, copy: copy, remember: remember, members: members,
+  window.PW = { key: '', hashParams: hashParams, token: token, api: api, remembered: remembered, keep: keep, forget: forget, staleNote: staleNote, esc: esc, copy: copy, remember: remember, members: members,
     noKeyHtml: noKeyHtml, scrollify: scrollify, navbar: navbar, tabMenu: navbar, hero: hero };
 })();

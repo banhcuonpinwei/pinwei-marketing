@@ -77,9 +77,11 @@
     } else {
       var dry = d && (d.meta.Page || d.meta.IG);
       o = { title: 'Write the week\'s post', stats: d ? [[d.groups_due, 'groups due this week'], [thisWeek, 'posts this week']] : [],
-        lead: 'One text in, three places out: the Facebook Page and Instagram post from here' +
-          (dry ? ' (a dry run until Meta is switched on)' : '') + ', and the groups get it in <a href="#week">Groups this week</a>, ' +
-          'where a person posts it.' };
+        lead: (d && !d.meta.ig_connected
+          ? 'One text in: the Facebook Page posts from here' + (d.meta.Page ? ' (a dry run until Meta is switched on)' : '') +
+            ' (Instagram waits until Meta links the account)'
+          : 'One text in, three places out: the Facebook Page and Instagram post from here' + (dry ? ' (a dry run until Meta is switched on)' : '')) +
+          ', and the groups get it in <a href="#week">Groups this week</a>, where a person posts it.' };
     }
     var label = { compose: 'New post', week: 'Groups this week', check: 'Check', dash: 'Dashboard', plan: 'Content plan' }[tab];
     o.kicker = 'Posting · ' + label;
@@ -106,22 +108,37 @@
 
   function load() {
     $('error').innerHTML = '';
+    // First visit of the page: draw what this browser got last time, then the fresh answer when it differs.
+    var last = !state.data && !state.queuePlan ? PW.remembered('bootstrap') : null;
+    if (last) show(last.data);
+    PW.staleNote(last);
     return PW.api('bootstrap', { plan: state.queuePlan }).then(function (r) {
-      state.data = r.data;
+      if (!state.queuePlan) PW.keep('bootstrap', r.data);
+      PW.staleNote(null);
+      if (!last || JSON.stringify(last.data) !== JSON.stringify(r.data)) show(r.data);
       footer(r);
-      renderCompose();
-      renderWeek();
-      renderD1();
-      renderD3();
-      renderPlan();
-      renderHead();
-    }, showError);
+    }, function (err) {
+      PW.staleNote(null);
+      if (err && err.auth) PW.forget('bootstrap');
+      showError(err);
+    });
+  }
+
+  function show(data) {
+    state.data = data;
+    renderCompose();
+    renderWeek();
+    renderD1();
+    renderD3();
+    renderPlan();
+    renderHead();
   }
 
   // ------------------------------------------------------------ New post
 
   function hint(ch) {
     var reason = state.data.meta[ch];
+    if (ch === 'IG' && !state.data.meta.ig_connected) return reason + ' It cannot be ticked until then.';
     if (ch === 'Page') return reason ? reason + ' Set up the Meta app to post for real.' : 'Posts on the Page right away.';
     return (reason ? reason + ' ' : 'Posts right away. ') + 'Needs a photo (JPEG, between 4:5 and 1.91:1).';
   }
@@ -140,7 +157,7 @@
       '<div><label for="branch">Branch</label><select id="branch"><option>All</option><option>TD</option><option>BT</option><option>LM</option></select></div></div>' +
       '<label>Post to</label><div class="targets">' +
       '<label class="check"><input type="checkbox" id="page"> <span><b>Facebook Page</b><br><span class="muted small" id="hPage"></span></span></label>' +
-      '<label class="check"><input type="checkbox" id="ig"> <span><b>Instagram</b><br><span class="muted small" id="hIG"></span></span></label>' +
+      '<label class="check"><input type="checkbox" id="ig"> <span><b>Instagram</b> <span class="tag" id="igTag" hidden>Not connected</span><br><span class="muted small" id="hIG"></span></span></label>' +
       '<label class="check"><input type="checkbox" id="group" checked> <span><b>Facebook groups</b><br><span class="muted small" id="hGroup"></span></span></label></div>' +
       '<div class="bar"><label for="who">Posted by</label><input type="text" id="who" maxlength="60" placeholder="Your name"></div>' +
       '<div class="actions"><button type="button" class="alt" id="save">Save draft</button> <button type="button" id="post">Post</button></div>' +
@@ -212,7 +229,7 @@
     $('topic').value = plan ? plan.topic : '';
     $('branch').value = plan ? plan.branch : 'All';
     $('page').checked = plan ? plan.channels.indexOf('page') >= 0 : false;
-    $('ig').checked = plan ? plan.channels.indexOf('ig') >= 0 : false;
+    $('ig').checked = !$('ig').disabled && (plan ? plan.channels.indexOf('ig') >= 0 : false);
     $('group').checked = plan ? plan.channels.indexOf('group') >= 0 : true;
     if (plan && plan.image_file_id) {
       $('preview').src = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(plan.image_file_id) + '&sz=w800';
@@ -231,6 +248,12 @@
     var d = state.data;
     $('hPage').textContent = hint('Page');
     $('hIG').textContent = hint('IG');
+    // Instagram stays off until Config instagram_connected is TRUE: nothing can be sent to the wrong account.
+    var igOff = !d.meta.ig_connected;
+    $('ig').disabled = igOff;
+    if (igOff) $('ig').checked = false;
+    $('igTag').hidden = !igOff;
+    $('hIG').className = 'small ' + (igOff ? 'warnc' : 'muted');
     $('hGroup').textContent = d.groups_due + ' group' + (d.groups_due === 1 ? '' : 's') +
       ' due this week. You post them one by one from the queue (Facebook has no API for groups).';
     if (!d.recent.length) {

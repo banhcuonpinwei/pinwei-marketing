@@ -40,11 +40,26 @@
       state.tab = tabFromHash();
       if (state.data) render();
     });
-    PW.api('bootstrap').then(function (r) {
-      state.data = r.data;
+    // Draw what this browser got last time at once, then the fresh answer when it differs.
+    var last = PW.remembered('bootstrap');
+    if (last) {
+      state.data = last.data;
       render();
+    }
+    PW.staleNote(last);
+    PW.api('bootstrap').then(function (r) {
+      PW.keep('bootstrap', r.data);
+      PW.staleNote(null);
+      if (!last || JSON.stringify(last.data) !== JSON.stringify(r.data)) {
+        state.data = r.data;
+        render();
+      }
       loadAi();
-    }, showError);
+    }, function (err) {
+      PW.staleNote(null);
+      if (err && err.auth) PW.forget('bootstrap');
+      showError(err);
+    });
   }
 
   // ------------------------------------------------------------ AI providers panel (right column)
@@ -464,6 +479,7 @@
   /** Reloads everything from the sheet, then draws the current tab; then(done) after. */
   function reload(done) {
     return PW.api('bootstrap').then(function (all) {
+      PW.keep('bootstrap', all.data);
       state.data = all.data;
       render();
       if (done) done();
