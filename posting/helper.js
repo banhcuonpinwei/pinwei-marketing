@@ -76,11 +76,12 @@
         lead: 'Every post written in New post, by week, newest first. Open one to change it in New post.' };
     } else {
       var dry = d && (d.meta.Page || d.meta.IG);
+      var where = d && d.meta.via === 'Buffer' ? 'Buffer' : 'Meta';
       o = { title: 'Write the week\'s post', stats: d ? [[d.groups_due, 'groups due this week'], [thisWeek, 'posts this week']] : [],
         lead: (d && !d.meta.ig_connected
-          ? 'One text in: the Facebook Page posts from here' + (d.meta.Page ? ' (a dry run until Meta is switched on)' : '') +
-            ' (Instagram waits until Meta links the account)'
-          : 'One text in, three places out: the Facebook Page and Instagram post from here' + (dry ? ' (a dry run until Meta is switched on)' : '')) +
+          ? 'One text in: the Facebook Page posts from here' + (d.meta.Page ? ' (a dry run until ' + where + ' is set up)' : '') +
+            ' (Instagram waits until it is connected in ' + where + ')'
+          : 'One text in, three places out: the Facebook Page and Instagram post from here' + (dry ? ' (a dry run until ' + where + ' is set up)' : '')) +
           ', and the groups get it in <a href="#week">Groups this week</a>, where a person posts it.' };
     }
     var label = { compose: 'New post', week: 'Groups this week', check: 'Check', dash: 'Dashboard', plan: 'Content plan' }[tab];
@@ -136,11 +137,12 @@
 
   // ------------------------------------------------------------ New post
 
+  // The same words as channelHint_ in Compose.js.
   function hint(ch) {
-    var reason = state.data.meta[ch];
-    if (ch === 'IG' && !state.data.meta.ig_connected) return reason + ' It cannot be ticked until then.';
-    if (ch === 'Page') return reason ? reason + ' Set up the Meta app to post for real.' : 'Posts on the Page right away.';
-    return (reason ? reason + ' ' : 'Posts right away. ') + 'Needs a photo (JPEG, between 4:5 and 1.91:1).';
+    var m = state.data.meta, reason = m[ch], buffer = m.via === 'Buffer', via = buffer ? ' through Buffer.' : '.';
+    if (ch === 'IG' && !m.ig_connected) return reason + ' It cannot be ticked until then.';
+    if (ch === 'Page') return reason ? reason + (buffer ? '' : ' Set up the Meta app to post for real.') : 'Posts on the Page right away' + via;
+    return (reason ? reason + ' ' : 'Posts right away' + via + ' ') + 'Needs a photo (JPEG, between 4:5 and 1.91:1).';
   }
 
   function buildCompose() {
