@@ -388,7 +388,9 @@
             (x.created_by ? ' · by ' + esc(x.created_by) : '') + '</div></td>' +
             '<td data-th="Channels">' + esc(chans) + '</td>' +
             '<td data-th="Status"><span class="tag st-' + esc(String(x.status).toLowerCase()) + '">' + esc(x.status) + '</span></td>' +
-            '<td class="nowrap"><a href="#compose" data-plan-open="' + i + '">Open</a></td></tr>';
+            '<td class="nowrap"><a href="#compose" data-plan-open="' + i + '">Open</a>' +
+            (x.status === 'Deleted' ? '' : ' · <a href="#" data-plan-del="' + i + '" title="Use after taking the post down on Facebook / Instagram">Mark deleted</a>') +
+            '</td></tr>';
         }).join('') + '</tbody></table>');
     }
     $('t-plan').innerHTML = out.join('');
@@ -397,6 +399,25 @@
         ev.preventDefault();
         edit(list[Number(a.getAttribute('data-plan-open'))]);
         location.hash = '#compose';
+      });
+    });
+    // Two clicks, like Post: the first asks, the second marks.
+    Array.prototype.forEach.call($('t-plan').querySelectorAll('a[data-plan-del]'), function (a) {
+      var armed = null;
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        if (!armed) {
+          a.textContent = 'Click again: it is deleted';
+          armed = setTimeout(function () { armed = null; a.textContent = 'Mark deleted'; }, 5000);
+          return;
+        }
+        clearTimeout(armed);
+        a.textContent = 'Saving…';
+        PW.api('planDelete', { plan_id: list[Number(a.getAttribute('data-plan-del'))].plan_id }).then(function () {
+          return load();
+        }, function (err) {
+          a.textContent = 'Not saved: ' + err.message;
+        });
       });
     });
   }
