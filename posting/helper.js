@@ -157,6 +157,8 @@
       '<span class="muted small" id="photoNote"></span></div>' +
       '<div class="pair"><div><label for="topic">Name (for you)</label><input type="text" id="topic" maxlength="120" placeholder="e.g. Morning bánh cuốn"></div>' +
       '<div><label for="branch">Branch</label><select id="branch"><option>All</option><option>TD</option><option>BT</option><option>LM</option></select></div></div>' +
+      '<div class="pair"><div><label for="ctype">Content type</label><select id="ctype"></select></div>' +
+      '<div><label for="goal">Goal</label><select id="goal"></select></div></div>' +
       '<label>Post to</label><div class="targets">' +
       '<label class="check"><input type="checkbox" id="page"> <span><b>Facebook Page</b><br><span class="muted small" id="hPage"></span></span></label>' +
       '<label class="check"><input type="checkbox" id="ig"> <span><b>Instagram</b> <span class="tag" id="igTag" hidden>Not connected</span><br><span class="muted small" id="hIG"></span></span></label>' +
@@ -230,6 +232,8 @@
     $('text').value = plan ? plan.text : '';
     $('topic').value = plan ? plan.topic : '';
     $('branch').value = plan ? plan.branch : 'All';
+    fillChoice('ctype', state.data.content_types, plan ? plan.content_type : '', CONTENT_TYPE_NAMES);
+    fillChoice('goal', state.data.goals, plan ? plan.goal : '', GOAL_NAMES);
     $('page').checked = plan ? plan.channels.indexOf('page') >= 0 : false;
     $('ig').checked = !$('ig').disabled && (plan ? plan.channels.indexOf('ig') >= 0 : false);
     $('group').checked = plan ? plan.channels.indexOf('group') >= 0 : true;
@@ -245,9 +249,26 @@
     window.scrollTo(0, 0);
   }
 
+  var CONTENT_TYPE_NAMES = { Food: 'Food / new dish', Promo: 'Promo / combo', Trend: 'Trend / fun', Brand: 'Brand / customers', Other: 'Other' };
+  var GOAL_NAMES = { Visit: 'Bring people to the shop', Engagement: 'Reactions, comments, shares' };
+
+  /** A select of Config values with a "Pick one" first; an old value not in Config (Other) stays shown. */
+  function fillChoice(id, values, current, names) {
+    var list = (values || []).slice();
+    if (current && list.indexOf(current) < 0) list.push(current);
+    $(id).innerHTML = '<option value="">Pick one</option>' + list.map(function (v) {
+      return '<option value="' + esc(v) + '">' + esc(names[v] || v) + '</option>';
+    }).join('');
+    $(id).value = current || '';
+  }
+
   function renderCompose() {
     if (!state.composeBuilt) buildCompose();
     var d = state.data;
+    if (!$('ctype').options.length) {
+      fillChoice('ctype', d.content_types, state.editing ? state.editing.content_type : '', CONTENT_TYPE_NAMES);
+      fillChoice('goal', d.goals, state.editing ? state.editing.goal : '', GOAL_NAMES);
+    }
     $('hPage').textContent = hint('Page');
     $('hIG').textContent = hint('IG');
     // Instagram stays off until Config instagram_connected is TRUE: nothing can be sent to the wrong account.
@@ -290,6 +311,7 @@
     return {
       plan_id: state.editing ? state.editing.plan_id : '',
       text: $('text').value, topic: $('topic').value, branch: $('branch').value,
+      content_type: $('ctype').value, goal: $('goal').value,
       page: $('page').checked, ig: $('ig').checked, group: $('group').checked,
       posted_by: $('who').value, image: state.img, remove_image: state.removeImage,
     };
@@ -327,8 +349,17 @@
     });
   }
 
+  /** True (and says why) when the text still has a [CẦN XÁC NHẬN: …] to fill in. Same test as hasPlaceholder_. */
+  function placeholderLeft() {
+    var plain = $('text').value.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    if (!/\[\s*can\s+xac\s+nhan/.test(plain)) return false;
+    result('Fill in every [CẦN XÁC NHẬN: …] in the text before posting.', 'badc');
+    return true;
+  }
+
   function post() {
     var b = $('post');
+    if (placeholderLeft()) return;
     if (!state.armed) {
       var where = [$('page').checked ? 'Facebook Page' : '', $('ig').checked ? 'Instagram' : '', $('group').checked ? 'the group queue' : '']
         .filter(Boolean).join(', ');

@@ -17,6 +17,8 @@
 
   function pct(n) { return n === null || n === undefined ? '-' : n + '%'; }
   function num(n) { return n === null || n === undefined ? '-' : Number(n).toLocaleString('en-US'); }
+  function rate(n) { return n === null || n === undefined ? '-' : n.toFixed(1) + '%'; }
+  var TYPE_NAMES = { Food: 'Food / new dish', Promo: 'Promo / combo', Trend: 'Trend / fun', Brand: 'Brand / customers', Other: 'Other', 'Not set': 'Not set' };
   function weekLabel(w) { return String(w).replace(/^\d{4}-/, ''); }
 
   function tile(label, value, note) {
@@ -97,11 +99,17 @@
       (asTable ? 'Show chart' : 'Show as table') + '</a></h2>' + (asTable ? weekTable(d.per_week) : legend(SERIES) + weekChart(d.per_week)) + '</section>');
     out.push('<section class="card"><h2 class="card-title">How group posts end up</h2>' + statusBar(d.status) + '</section></div>');
     out.push('<section class="card"><h2 class="card-title">Engagement by channel</h2>' + table(
-      [['Channel'], ['Posts', 1], ['With numbers', 1], ['Reactions', 1], ['Comments', 1], ['Avg reactions', 1], ['Avg comments', 1], ['Views', 1], ['Leads', 1]],
+      [['Channel'], ['Posts', 1], ['With numbers', 1], ['Reactions', 1], ['Comments', 1], ['Shares', 1], ['Avg reactions', 1], ['Avg comments', 1], ['Views', 1], ['ER', 1], ['Leads', 1]],
       d.by_channel.map(function (c) {
-        return [esc({ Page: 'Facebook Page', IG: 'Instagram', Group: 'Groups' }[c.channel]), c.posts, c.measured, num(c.reactions), num(c.comments),
-          num(c.avg_reactions), num(c.avg_comments), c.channel === 'Group' ? '-' : num(c.views), c.leads];
-      }), 'No posts yet.') + '</section>');
+        return [esc({ Page: 'Facebook Page', IG: 'Instagram', Group: 'Groups' }[c.channel]), c.posts, c.measured, num(c.reactions), num(c.comments), num(c.shares),
+          num(c.avg_reactions), num(c.avg_comments), c.channel === 'Group' ? '-' : num(c.views), c.channel === 'Group' ? '-' : rate(c.er), c.leads];
+      }), 'No posts yet.') + '<p class="muted small">ER = (reactions + comments + shares) / views, over the posts that have views.</p></section>');
+    out.push('<section class="card"><h2 class="card-title">Page and Instagram by content type</h2>' + table(
+      [['Content type'], ['Posts', 1], ['With views', 1], ['Reactions', 1], ['Comments', 1], ['Shares', 1], ['Views', 1], ['ER', 1]],
+      (d.by_type || []).map(function (t) {
+        return [esc(TYPE_NAMES[t.content_type] || t.content_type), t.posts, t.with_views, num(t.reactions), num(t.comments), num(t.shares), num(t.views), rate(t.er)];
+      }), 'No Page or Instagram posts in these weeks.') +
+      '<p class="muted small">Not set = posted on Facebook itself or before content types existed. With few posts per type, read these as hints, not results.</p></section>');
     out.push('<section class="card"><h2 class="card-title">Engagement by group</h2>' + table(
       [['Group'], ['Posts', 1], ['Live', 1], ['Removed', 1], ['Pending', 1], ['Avg reactions', 1], ['Avg comments', 1], ['Leads', 1]],
       d.by_group.map(function (g) {
