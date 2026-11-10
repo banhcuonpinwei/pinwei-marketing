@@ -859,7 +859,8 @@
       out.push('<table class="list"><thead><tr><th>Group</th><th>Posted</th><th>Last numbers</th><th>Post</th></tr></thead><tbody>' +
         d.posts.map(function (p) {
           var last = p.reactions === null && p.comments === null ? 'none yet'
-            : (p.reactions === null ? '-' : p.reactions) + ' reactions, ' + (p.comments === null ? '-' : p.comments) + ' comments';
+            : (p.reactions === null ? '-' : p.reactions) + ' reactions, ' + (p.comments === null ? '-' : p.comments) + ' comments, ' +
+              (p.shares === null || p.shares === undefined ? '-' : p.shares) + ' shares';
           return '<tr><td data-th="Group">' + esc(p.group_name) + '</td><td data-th="Posted">' + esc(p.posted_ago) + '</td>' +
             '<td data-th="Last numbers">' + esc(last) + '</td><td data-th="Post">' + postLink(p) + '</td></tr>';
         }).join('') + '</tbody></table>');

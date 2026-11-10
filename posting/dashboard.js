@@ -111,9 +111,9 @@
       }), 'No Page or Instagram posts in these weeks.') +
       '<p class="muted small">Not set = posted on Facebook itself or before content types existed. With few posts per type, read these as hints, not results.</p></section>');
     out.push('<section class="card"><h2 class="card-title">Engagement by group</h2>' + table(
-      [['Group'], ['Posts', 1], ['Live', 1], ['Removed', 1], ['Pending', 1], ['Avg reactions', 1], ['Avg comments', 1], ['Leads', 1]],
+      [['Group'], ['Posts', 1], ['Live', 1], ['Removed', 1], ['Pending', 1], ['Avg reactions', 1], ['Avg comments', 1], ['Shares', 1], ['Leads', 1]],
       d.by_group.map(function (g) {
-        return [esc(g.name), g.posts, g.live, g.removed, g.pending, num(g.avg_reactions), num(g.avg_comments), g.leads];
+        return [esc(g.name), g.posts, g.live, g.removed, g.pending, num(g.avg_reactions), num(g.avg_comments), num(g.shares), g.leads];
       }), 'No group posts in these weeks.') + '</section>');
     out.push('<div class="dash-grid"><section class="card"><h2 class="card-title">Groups not posted for ' + d.stale_days + '+ days' +
       (d.stale_total > d.stale.length ? ' (' + d.stale_total + ', longest first)' : '') + '</h2>' + table(

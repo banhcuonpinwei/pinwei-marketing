@@ -18,6 +18,7 @@
     var src = p.src || '';
     var reactions = Number(p.reactions) || 0;
     var comments = Number(p.comments) || 0;
+    var shares = Number(p.shares) || 0;
     if (src && p.v !== info.version) {
       out.push('<p class="note bad">Your PW capture bookmark is out of date, so these numbers may be wrong. ' +
         '<a href="install.html" target="_blank" rel="noopener">Open the install page</a>, click Copy, then paste it into the bookmark ' +
@@ -30,7 +31,7 @@
       out.push('<p class="note warn">Could not read the numbers from the page. Type them in.</p>');
     } else if (src && p.exact === '1') {
       out.push('<p class="note ok">Exact numbers from the post page. Check them, then Save.</p>');
-    } else if (src && Math.max(reactions, comments) >= 1000) {
+    } else if (src && Math.max(reactions, comments, shares) >= 1000) {
       out.push('<p class="note warn">Facebook shows these numbers rounded (like 1,4K). For exact numbers, reload the post (' + PW.keys.reload + '), then click PW capture again.</p>');
     } else if (src) {
       out.push('<p class="note warn">Filled in from the post page. Check the numbers, then Save.</p>');
@@ -48,10 +49,10 @@
     html.push('<form id="f" class="panel" autocomplete="off">');
     html.push('<label for="url">Post link</label><input type="url" id="url" required value="' + esc(p.url || '') + '">');
     if (info.normalized && info.normalized !== p.url) html.push('<div class="url">Saved as ' + esc(info.normalized) + '</div>');
-    html.push('<div class="pair"><div><label for="reactions">Reactions</label><input type="number" min="0" step="1" inputmode="numeric" id="reactions" value="' +
-      esc(count(p.reactions)) + '"></div><div><label for="comments">Comments</label><input type="number" min="0" step="1" inputmode="numeric" id="comments" value="' +
-      esc(count(p.comments)) + '"></div></div>');
-    if (count(p.shares) !== '') html.push('<p class="muted">The page also showed ' + esc(count(p.shares)) + ' shares (not saved for group posts).</p>');
+    var box = function (id, label, v) {
+      return '<div><label for="' + id + '">' + label + '</label><input type="number" min="0" step="1" inputmode="numeric" id="' + id + '" value="' + esc(count(v)) + '"></div>';
+    };
+    html.push('<div class="pair trio">' + box('reactions', 'Reactions', p.reactions) + box('comments', 'Comments', p.comments) + box('shares', 'Shares', p.shares) + '</div>');
     html.push('<label class="check"><input type="checkbox" id="lead"' + (f && f.has_lead_comment ? ' checked' : '') +
       '> A comment asks about booking, price or the address (a lead)</label>');
     html.push('<label for="status">Status</label><select id="status">' + STATUSES.map(function (s) {
@@ -69,7 +70,7 @@
         '<tr><td>Group</td><td>' + esc(f.group || '-') + '</td></tr>' +
         '<tr><td>Posted by</td><td>' + esc(f.posted_by || '-') + '</td></tr>' +
         '<tr><td>Status now</td><td>' + esc(f.status || '-') + '</td></tr>' +
-        '<tr><td>Last numbers</td><td>' + esc((f.reactions === null ? '-' : f.reactions) + ' reactions, ' + (f.comments === null ? '-' : f.comments) + ' comments') + '</td></tr>' +
+        '<tr><td>Last numbers</td><td>' + esc((f.reactions === null ? '-' : f.reactions) + ' reactions, ' + (f.comments === null ? '-' : f.comments) + ' comments, ' + (f.shares === null || f.shares === undefined ? '-' : f.shares) + ' shares') + '</td></tr>' +
         '</table></div>');
     } else if (info.normalized) {
       html.push('<p class="muted">This post is not in PostLog yet. Save adds it as a group post.</p>');
@@ -84,7 +85,7 @@
       m.className = 'note';
       m.textContent = 'Saving…';
       PW.api('captureSave', {
-        url: $('url').value, reactions: $('reactions').value, comments: $('comments').value, has_lead_comment: $('lead').checked,
+        url: $('url').value, reactions: $('reactions').value, comments: $('comments').value, shares: $('shares').value, has_lead_comment: $('lead').checked,
         status: $('status').value, posted_by: $('who') ? $('who').value : '', note: $('note').value,
       }).then(function (r) {
         m.className = 'note ok';
