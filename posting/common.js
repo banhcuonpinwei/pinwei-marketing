@@ -309,6 +309,23 @@
       (stats ? '<div class="phstats">' + stats + '</div>' : '') + '</section>';
   }
 
-  window.PW = { key: '', hashParams: hashParams, token: token, api: api, remembered: remembered, keep: keep, forget: forget, staleNote: staleNote, esc: esc, copy: copy, remember: remember, members: members,
+  /** Mac or Windows keyboard names, so the help text matches the computer (Safari on a MacBook, Chrome on Windows). */
+  var NAV = typeof navigator === 'undefined' ? {} : navigator;
+  var MAC = /Mac|iPhone|iPad|iPod/.test(NAV.platform || NAV.userAgent || '');
+  var KEYS = MAC
+    ? { paste: '⌘V', copy: '⌘C', all: '⌘A', reload: '⌘R', bar: '⇧⌘B', mod: '⌘' }
+    : { paste: 'Ctrl+V', copy: 'Ctrl+C', all: 'Ctrl+A', reload: 'F5', bar: 'Ctrl+Shift+B', mod: 'Ctrl' };
+
+  /** Safari, Chrome, Edge, Firefox or other (Chrome's user agent also says Safari, so the order matters). */
+  function browserName() {
+    var ua = NAV.userAgent || '';
+    if (/Edg\//.test(ua)) return 'Edge';
+    if (/Firefox\/|FxiOS/.test(ua)) return 'Firefox';
+    if (/Chrome\/|CriOS|Chromium/.test(ua)) return 'Chrome';
+    if (/Safari\//.test(ua)) return 'Safari';
+    return 'other';
+  }
+
+  window.PW = { key: '', keys: KEYS, mac: MAC, browser: browserName(), hashParams: hashParams, token: token, api: api, remembered: remembered, keep: keep, forget: forget, staleNote: staleNote, esc: esc, copy: copy, remember: remember, members: members,
     noKeyHtml: noKeyHtml, scrollify: scrollify, navbar: navbar, tabMenu: navbar, hero: hero };
 })();

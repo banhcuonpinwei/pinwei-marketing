@@ -31,7 +31,7 @@
     } else if (src && p.exact === '1') {
       out.push('<p class="note ok">Exact numbers from the post page. Check them, then Save.</p>');
     } else if (src && Math.max(reactions, comments) >= 1000) {
-      out.push('<p class="note warn">Facebook shows these numbers rounded (like 1,4K). For exact numbers, press F5 on the post, then click PW capture again.</p>');
+      out.push('<p class="note warn">Facebook shows these numbers rounded (like 1,4K). For exact numbers, reload the post (' + PW.keys.reload + '), then click PW capture again.</p>');
     } else if (src) {
       out.push('<p class="note warn">Filled in from the post page. Check the numbers, then Save.</p>');
     }

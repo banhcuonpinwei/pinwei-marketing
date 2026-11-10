@@ -622,8 +622,8 @@
         var t = q.text;
         if (!t.trim()) return qmsg('Write the text first (Edit text above the list).', 'badc');
         PW.copy(t, function (ok) {
-          qmsg(ok ? 'Copied the text for <b>' + esc(g.name) + '</b>. In the group: click the post box, Ctrl+V, add the photo, post. Then Save here.'
-            : 'Could not copy: click Edit text above the list, select the text and press Ctrl+C.', ok ? 'okc' : 'badc');
+          qmsg(ok ? 'Copied the text for <b>' + esc(g.name) + '</b>. In the group: click the post box, ' + PW.keys.paste + ', add the photo, post. Then Save here.'
+            : 'Could not copy: click Edit text above the list, select the text and press ' + PW.keys.copy + '.', ok ? 'okc' : 'badc');
         });
         window.open(g.url, '_blank', 'noopener');
       });
@@ -852,7 +852,7 @@
 
   function renderD3() {
     var d = state.data.d3;
-    var out = ['<p class="muted">Live posts made ' + d.days + ' days ago or more. Open the post, press F5, click <b>PW capture</b>, ' +
+    var out = ['<p class="muted">Live posts made ' + d.days + ' days ago or more. Open the post, reload it (' + PW.keys.reload + '), click <b>PW capture</b>, ' +
       'check the numbers and Save. The post leaves this list once its numbers are saved.</p>'];
     if (!d.posts.length) out.push('<p class="note ok">Nothing to record.</p>');
     else {
