@@ -228,20 +228,30 @@
         (loading ? 'Loading the research and ideas…' : esc(note || 'Not loaded.')) + '</p></div>';
       return;
     }
-    box.innerHTML = statusCard() + ideasTable() + findingsTable();
+    box.innerHTML = (loading ? '<p class="muted small">Refreshing the AI part…</p>' : '') + statusCard() + ideasTable() + findingsTable();
     bind();
   }
 
+  /**
+   * Loads the AI part. The first time, what this browser got last time is drawn at once (marked as being refreshed),
+   * so the tab never waits on Apps Script to show something; the fresh answer replaces it.
+   */
   function load(force) {
     if (loading || (data && !force)) { render(); return Promise.resolve(); }
+    if (!data) {
+      var last = PW.remembered('aiStatus');
+      if (last) data = last.data;
+    }
     loading = true;
     render();
     return PW.api('aiStatus', {}).then(function (r) {
       loading = false;
       data = r.data;
+      PW.keep('aiStatus', r.data);
       render();
     }, function (err) {
       loading = false;
+      if (err && err.auth) PW.forget('aiStatus');
       note = 'The AI part did not load: ' + err.message;
       render();
     });
@@ -442,4 +452,9 @@
     },
     composeReset: function () { clearTimeout(timer); job = null; cnote = ''; keepJob(); renderCompose(); },
   };
+
+  // helper.js loads before this file and may already have drawn the page (from the answer kept in this browser):
+  // put the AI parts in their places now, or they would wait for a redraw that may never come.
+  if (document.getElementById('aiPlan')) window.PW_AI.mount(document.getElementById('aiPlan'), String(location.hash) === '#plan');
+  if (document.getElementById('aiCompose')) window.PW_AI.mountCompose(document.getElementById('aiCompose'));
 })();
