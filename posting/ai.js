@@ -143,7 +143,11 @@
       (checks ? '<h4 class="pv-h">Check before posting</h4><ul class="pv-checks">' + checks + '</ul>' : '') +
       ((i.facts_needed || []).length ? '<p class="muted small">Uses Knowledge: ' + esc(i.facts_needed.join(', ')) + '</p>' : '') +
       (i.why ? '<p class="muted small">From findings ' + esc(i.why) + (sources ? ':<br>' + sources : '') + '</p>' : '') +
-      '</div><div class="preview-foot">' +
+      '</div>' +
+      (i.status === 'New' ? '<div class="preview-edit"><label for="pvAsk">Rewrite this idea with AI (no new research, about 0.01 USD)</label>' +
+        '<div class="row"><input type="text" id="pvAsk" maxlength="300" placeholder="Optional: what to change, e.g. funnier, shorter, focus on the combo">' +
+        '<button type="button" class="alt" id="pvRewrite">Rewrite with AI</button></div><p class="small muted" id="pvNote"></p></div>' : '') +
+      '<div class="preview-foot">' +
       (['New', 'Writing', 'Written'].indexOf(i.status) >= 0 ? '<button type="button" id="pvWrite">' + (i.status === 'New' ? 'Write 3 drafts' : 'Open drafts') + '</button>' : '') +
       (i.status === 'New' ? '<button type="button" class="alt" id="pvDismiss">Dismiss</button>' : '<span class="tag">' + esc(i.status) + '</span>') +
       '</div></div>';
@@ -166,6 +170,48 @@
         call('ideaDismiss', { idea_id: i.idea_id }, 'Idea set aside.');
       });
     }
+    if (document.getElementById('pvRewrite')) {
+      document.getElementById('pvRewrite').addEventListener('click', function () {
+        var btn = document.getElementById('pvRewrite');
+        var say = function (t) { var n = document.getElementById('pvNote'); if (n) n.textContent = t; };
+        btn.disabled = true;
+        say('Rewriting… about 20 seconds.');
+        rewriteIdea(i, document.getElementById('pvAsk').value.trim(), say, function (fresh) {
+          if (!document.getElementById('ideaPreview')) return;
+          close();
+          openPreview(fresh);
+        }, function () { if (document.getElementById('pvRewrite')) document.getElementById('pvRewrite').disabled = false; });
+      });
+    }
+  }
+
+  /**
+   * Rewrite with AI on one idea: starts the small run, asks how it goes every 4 seconds, then puts the new idea in the
+   * list (and in what this browser keeps) and hands it back to draw the preview again.
+   */
+  function rewriteIdea(idea, instruction, say, done, failed) {
+    var finish = function (job) {
+      if (job.status === 'done' && job.idea) {
+        data.ideas = (data.ideas || []).map(function (x) { return x.idea_id === job.idea.idea_id ? job.idea : x; });
+        PW.keep('aiStatus', data);
+        render();
+        done(job.idea);
+        return;
+      }
+      if (job.status !== 'active') {
+        var err = (job.steps || []).filter(function (s) { return s.error; }).map(function (s) { return s.error; })[0] || job.status;
+        say('Not rewritten: ' + err);
+        failed();
+        return;
+      }
+      setTimeout(function () {
+        PW.api('aiJob', { pipeline_id: job.pipeline_id }).then(function (r) { finish(r.data); }, function (e) { say('Still working (' + e.message + ')…'); finish(job); });
+      }, 4000);
+    };
+    PW.api('aiIdeaRewrite', { idea_id: idea.idea_id, instruction: instruction }).then(function (r) { finish(r.data); }, function (e) {
+      say('Not started: ' + e.message);
+      failed();
+    });
   }
 
   function findingsTable() {
