@@ -1,6 +1,6 @@
 /*
  * The posting helper: New post (composer), Groups this week (copy-and-open queue), Check D+1, Check D+3, Dashboard,
- * Content plan (every post by week; AI suggestions come there later).
+ * Content plan (every post by week, and the AI research and ideas of the week from ai.js).
  * One API call ("bootstrap") loads every tab; switching tabs never reloads. The composer keeps what you
  * typed when its data is refreshed.
  */
@@ -45,6 +45,8 @@
     }
     // The dashboard has its own call, made the first time its tab opens (dashboard.js).
     if (tab === 'dash' && window.PW_DASHBOARD) window.PW_DASHBOARD.show();
+    // The AI research and ideas have their own call too (ai.js), made the first time Content plan opens.
+    if (tab === 'plan' && window.PW_AI && $('aiPlan')) window.PW_AI.mount($('aiPlan'), true);
     renderHead();
     PW.navbar();
   }
@@ -73,7 +75,8 @@
         lead: 'The last eight weeks of Page, Instagram and group posts: what went out, and the reactions and comments that came back.' };
     } else if (tab === 'plan') {
       o = { title: 'Content plan', stats: d ? [[thisWeek, 'posts this week'], [(d.content_plan || []).length, 'posts in all']] : [],
-        lead: 'Every post written in New post, by week, newest first. Open one to change it in New post.' };
+        lead: 'The AI research and ideas of the week (every Monday), then every post written in New post, by week, newest first. ' +
+          'Open one to change it in New post.' };
     } else {
       var dry = d && (d.meta.Page || d.meta.IG);
       var where = d && d.meta.via === 'Buffer' ? 'Buffer' : 'Meta';
@@ -400,14 +403,11 @@
 
   var CHANNEL_NAMES = { page: 'Page', ig: 'IG', group: 'Groups' };
 
-  /** Every post by week, newest first; Open loads it in New post. The AI suggestions card is a placeholder. */
+  /** The AI part (ai.js) first, then every post by week, newest first; Open loads it in New post. */
   function renderPlan() {
     var d = state.data;
     var list = d.content_plan || [];
-    var out = ['<div class="card ai-card"><div class="row ai-head"><b>AI suggestions</b><span class="tag">Coming later</span></div>' +
-      '<p class="muted">Later, AI will read the Dashboard numbers and the past posts and suggest what to post next week: ' +
-      'topic, branch, channels and a first text. You pick one, it opens in New post, and you edit and post it as usual. ' +
-      'Nothing is suggested yet.</p></div>'];
+    var out = ['<div id="aiPlan" class="ai-plan"></div><h3 class="ai-h">Posts</h3>'];
     if (!list.length) {
       out.push('<p class="muted">No posts yet. Write one in New post.</p>');
     } else {
@@ -425,6 +425,7 @@
         }).join('') + '</tbody></table>');
     }
     $('t-plan').innerHTML = out.join('');
+    if (window.PW_AI) window.PW_AI.mount($('aiPlan'), tabFromHash() === 'plan');
     Array.prototype.forEach.call($('t-plan').querySelectorAll('a[data-plan-open]'), function (a) {
       a.addEventListener('click', function (ev) {
         ev.preventDefault();
