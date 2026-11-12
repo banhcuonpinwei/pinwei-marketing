@@ -102,8 +102,15 @@
     var p = d.pipeline;
     var head = '<div class="row ai-head"><b>AI research</b>' + (d.enabled ? '<span class="tag st-on">On</span>' : '<span class="tag">Off</span>') + '</div>';
     if (!d.data_store) return '<div class="card ai-card">' + head + '<p class="note bad">The data store did not answer: ' + esc(d.error || '') + '</p></div>';
-    var money = '<p class="muted small">Spent this month ' + usd(d.spend.month_used_usd) + ' of ' + usd(d.spend.monthly_cap_usd) +
-      ' USD · today ' + usd(d.spend.day_used_usd) + ' of ' + usd(d.spend.daily_cap_usd) + ' USD (Vietnam time).</p>';
+    var ap = d.apify;
+    var money = '<table class="spend"><thead><tr><th>Spent</th><th>This month</th><th>Today</th></tr></thead><tbody>' +
+      '<tr><td data-th="Spent">OpenAI</td><td data-th="This month">' + usd(d.spend.month_used_usd) + ' of ' + usd(d.spend.monthly_cap_usd) + ' USD</td>' +
+      '<td data-th="Today">' + usd(d.spend.day_used_usd) + ' of ' + usd(d.spend.daily_cap_usd) + ' USD</td></tr>' +
+      (ap ? '<tr><td data-th="Spent">Apify</td><td data-th="This month">' + (ap.error ? '<span class="muted">not read: ' + esc(ap.error) + '</span>'
+        : usd(ap.month_used_usd) + ' of ' + usd(ap.monthly_cap_usd) + ' USD' + (ap.cycle_start ? ' <span class="muted">(since ' + esc(ap.cycle_start) + ')</span>' : '')) +
+        '</td><td data-th="Today" class="muted">no daily limit</td></tr>' : '') +
+      (ap && !ap.error ? '<tr><td data-th="Spent"><b>Total</b></td><td data-th="This month"><b>' + usd(d.spend.month_used_usd + ap.month_used_usd) + ' USD</b></td><td></td></tr>' : '') +
+      '</tbody></table><p class="muted small">Today is Vietnam time. Apify counts its own billing cycle and is read every 10 minutes.</p>';
     var kn = d.knowledge || { total: 0, verified: 0 };
     var facts = '<p class="muted small">Knowledge: ' + kn.verified + ' of ' + kn.total + ' facts verified. ' +
       (kn.verified < 10 ? 'Ideas can only use verified facts; verify the branches, opening hours, main dishes and running promos in the Knowledge sheet.' : '') + '</p>';
