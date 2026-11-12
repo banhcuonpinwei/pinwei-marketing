@@ -24,8 +24,9 @@
   // Rewrite all: the runs still going ({pipeline_ids, total, failed}), asked every 6 seconds until they end.
   var rewriting = null;
 
+  /** Ideas Rewrite with AI may change: New and Written (a Written one goes back to New; drafts are written later). */
   function newIdeas() {
-    return (data && data.ideas || []).filter(function (i) { return i.status === 'New'; });
+    return (data && data.ideas || []).filter(function (i) { return i.status === 'New' || i.status === 'Written'; });
   }
 
   function rewriteAll() {
@@ -201,7 +202,8 @@
       ((i.facts_needed || []).length ? '<p class="muted small">Uses Knowledge: ' + esc(i.facts_needed.join(', ')) + '</p>' : '') +
       (i.why ? '<p class="muted small">From findings ' + esc(i.why) + (sources ? ':<br>' + sources : '') + '</p>' : '') +
       '</div>' +
-      (i.status === 'New' ? '<div class="preview-edit"><label for="pvAsk">Rewrite this idea with AI (no new research, about 0.01 USD)</label>' +
+      (i.status === 'New' || i.status === 'Written' ? '<div class="preview-edit"><label for="pvAsk">Rewrite this idea with AI (no new research, about 0.01 USD' +
+        (i.status === 'Written' ? '; it goes back to New and its drafts are written again when you ask' : '') + ')</label>' +
         '<div class="row"><input type="text" id="pvAsk" maxlength="300" placeholder="Optional: what to change, e.g. funnier, shorter, focus on the combo">' +
         '<button type="button" class="alt" id="pvRewrite">Rewrite with AI</button></div><p class="small muted" id="pvNote"></p></div>' : '') +
       '<div class="preview-foot">' +
