@@ -21,6 +21,48 @@
 
   function usd(n) { return (Number(n) || 0).toFixed(2); }
 
+  // Rewrite all: the runs still going ({pipeline_ids, total, failed}), asked every 6 seconds until they end.
+  var rewriting = null;
+
+  function newIdeas() {
+    return (data && data.ideas || []).filter(function (i) { return i.status === 'New'; });
+  }
+
+  function rewriteAll() {
+    var ids = newIdeas().map(function (i) { return i.idea_id; });
+    PW.api('aiIdeaRewriteAll', { idea_ids: ids }).then(function (r) {
+      rewriting = { pipeline_ids: r.data.pipeline_ids, total: r.data.pipeline_ids.length, failed: [] };
+      note = r.data.skipped.length ? 'Not rewritten (already moved on): ' + r.data.skipped.join(', ') : '';
+      render();
+      setTimeout(pollRewrites, 6000);
+    }, function (e) {
+      note = 'Not started: ' + e.message;
+      render();
+    });
+  }
+
+  function pollRewrites() {
+    if (!rewriting) return;
+    PW.api('aiJobs', { pipeline_ids: rewriting.pipeline_ids }).then(function (r) {
+      var going = [];
+      r.data.forEach(function (j) {
+        if (j.status === 'active') { going.push(j.pipeline_id); return; }
+        if (j.idea) data.ideas = data.ideas.map(function (x) { return x.idea_id === j.idea.idea_id ? j.idea : x; });
+        else rewriting.failed.push(j.error || j.status);
+      });
+      rewriting.pipeline_ids = going;
+      if (!going.length) {
+        var n = rewriting.total - rewriting.failed.length;
+        note = n + ' of ' + rewriting.total + ' ideas rewritten.' + (rewriting.failed.length ? ' Not rewritten: ' + rewriting.failed[0] : '');
+        rewriting = null;
+      } else {
+        setTimeout(pollRewrites, 6000);
+      }
+      PW.keep('aiStatus', data);
+      render();
+    }, function () { setTimeout(pollRewrites, 6000); });
+  }
+
   function link(u, text) {
     if (!/^https?:\/\//i.test(String(u))) return '';
     return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(text || String(u).replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)) + '</a>';
@@ -83,6 +125,8 @@
     var buttons = '<div class="ai-actions">' +
       '<button type="button" id="aiResearch"' + (d.can_research ? ' disabled title="' + esc(d.can_research) + '"' : '') + '>Research again</button>' +
       (p && (p.status === 'failed' || blocked) ? '<button type="button" class="alt" id="aiAgain">Run again</button>' : '') +
+      (rewriting ? '<button type="button" disabled>Rewriting: ' + (rewriting.total - rewriting.pipeline_ids.length) + ' of ' + rewriting.total + ' done</button>'
+        : d.enabled && newIdeas().length ? '<button type="button" class="alt" id="aiRewriteAll">Rewrite all ideas</button>' : '') +
       (d.enabled ? '<button type="button" class="alt" id="aiStop">Stop AI</button>' : '') +
       '<button type="button" class="alt" id="aiRefresh">Refresh AI</button></div>' +
       (d.can_research ? '<p class="muted small">' + esc(d.can_research) + '</p>' : '');
@@ -246,6 +290,10 @@
       twoClick(q('aiAgain'), 'Click again: run again', function () {
         call('aiRunAgain', { pipeline_id: d.pipeline.pipeline_id }, 'Running again.');
       });
+    }
+    if (q('aiRewriteAll')) {
+      var n = newIdeas().length;
+      twoClick(q('aiRewriteAll'), 'Click again: rewrite ' + n + ' ideas (about ' + usd(n * 0.01) + ' USD)', rewriteAll);
     }
     if (q('aiStop')) {
       twoClick(q('aiStop'), 'Click again: stop every AI step', function () {
