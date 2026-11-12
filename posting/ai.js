@@ -111,6 +111,11 @@
         '</td><td data-th="Today" class="muted">no daily limit</td></tr>' : '') +
       (ap && !ap.error ? '<tr><td data-th="Spent"><b>Total</b></td><td data-th="This month"><b>' + usd(d.spend.month_used_usd + ap.month_used_usd) + ' USD</b></td><td></td></tr>' : '') +
       '</tbody></table><p class="muted small">Today is Vietnam time. Apify counts its own billing cycle and is read every 10 minutes.</p>';
+    var pb = d.playbook;
+    var playbook = '<p class="muted small">Playbook: ' + (pb ? 'updated ' + esc(new Date(pb.at).toLocaleDateString('en-GB')) + ', ' +
+      (pb.applied || []).length + ' change' + ((pb.applied || []).length === 1 ? '' : 's') + '. ' + esc(pb.summary || '') +
+      ((pb.applied || []).length ? ' (' + (pb.applied || []).map(function (c) { return esc(c.action + ' ' + c.rule_id); }).join(', ') + ')' : '')
+      : 'not updated by the AI yet. It updates on the 1st of each month; rules marked locked in the sheet are never changed.') + '</p>';
     var kn = d.knowledge || { total: 0, verified: 0 };
     var facts = '<p class="muted small">Knowledge: ' + kn.verified + ' of ' + kn.total + ' facts verified. ' +
       (kn.verified < 10 ? 'Ideas can only use verified facts; verify the branches, opening hours, main dishes and running promos in the Knowledge sheet.' : '') + '</p>';
@@ -134,10 +139,11 @@
       (p && (p.status === 'failed' || blocked) ? '<button type="button" class="alt" id="aiAgain">Run again</button>' : '') +
       (rewriting ? '<button type="button" disabled>Rewriting: ' + (rewriting.total - rewriting.pipeline_ids.length) + ' of ' + rewriting.total + ' done</button>'
         : d.enabled && newIdeas().length ? '<button type="button" class="alt" id="aiRewriteAll">Rewrite all ideas</button>' : '') +
+      (d.enabled ? '<button type="button" class="alt" id="aiPlaybook">Update Playbook</button>' : '') +
       (d.enabled ? '<button type="button" class="alt" id="aiStop">Stop AI</button>' : '') +
       '<button type="button" class="alt" id="aiRefresh">Refresh AI</button></div>' +
       (d.can_research ? '<p class="muted small">' + esc(d.can_research) + '</p>' : '');
-    return '<div class="card ai-card">' + head + runInfo + money + facts + rows.join('') + buttons +
+    return '<div class="card ai-card">' + head + runInfo + money + facts + playbook + rows.join('') + buttons +
       (note ? '<p class="note">' + esc(note) + '</p>' : '') + '</div>';
   }
 
@@ -302,6 +308,11 @@
       var n = newIdeas().length;
       twoClick(q('aiRewriteAll'), 'Click again: rewrite ' + n + ' ideas (about ' + usd(n * 0.01) + ' USD)', rewriteAll);
     }
+    if (q('aiPlaybook')) {
+      twoClick(q('aiPlaybook'), 'Click again: update the Playbook (about 0.10 USD)', function () {
+        call('aiPlaybookNow', {}, 'Playbook update started. The changes land in the Playbook sheet in a few minutes; press Refresh AI then.');
+      });
+    }
     if (q('aiStop')) {
       twoClick(q('aiStop'), 'Click again: stop every AI step', function () {
         call('aiStop', {}, 'AI stopped. Set ai_enabled to TRUE in Config to turn it on again.');
@@ -361,7 +372,7 @@
   // ------------------------------------------------------------ New post: the AI card
 
   var JOB_KEY = 'pw_ai_job';
-  var SCORE_NAMES = { hook: 'Hook', voice: 'Voice', readability: 'Easy to read', cta: 'Call to action', trend_fit: 'Fits the moment',
+  var SCORE_NAMES = { hook: 'Headline', brevity: 'Short and clear', voice: 'Voice', readability: 'Easy to read', cta: 'Call to action', trend_fit: 'Fits the moment',
     originality: 'Original', fact_tone: 'Facts said well' };
   var STEP_LABELS = { write: 'Writing 3 versions', validate: 'Checking facts and prices', review: 'Scoring', rewrite: 'Rewriting the weak ones',
     validate_rewrite: 'Checking the rewrites', save: 'Saving', revise: 'Editing' };
@@ -431,13 +442,13 @@
 
   function draftBlock(d, k) {
     var scores = d.scores ? '<details class="draft-more"><summary>Scores and editor notes</summary><table class="list small"><tbody>' +
-      Object.keys(SCORE_NAMES).map(function (s) { return '<tr><td>' + esc(SCORE_NAMES[s]) + '</td><td class="n">' + esc(d.scores[s]) + '</td></tr>'; }).join('') +
+      Object.keys(SCORE_NAMES).map(function (s) { return '<tr><td>' + esc(SCORE_NAMES[s]) + '</td><td class="n">' + esc(d.scores[s] === undefined ? '' : d.scores[s]) + '</td></tr>'; }).join('') +
       '</tbody></table>' + (d.issues || []).map(function (i) {
         return '<p class="small"><b>' + esc(i.quote) + '</b><br>' + esc(i.fix) + '</p>';
       }).join('') + '</details>' : '';
     var badge = d.style === 'revise' ? '' : d.passed ? '<span class="tag st-done">Passed</span>' : '<span class="tag st-failed">Needs work</span>';
     return '<div class="draft"><div class="draft-head"><b>' + esc(d.style_name) + '</b>' + badge +
-      (d.avg !== null && d.avg !== undefined ? '<span class="muted small">' + esc(d.avg) + ' / 5</span>' : '') +
+      (d.avg !== null && d.avg !== undefined ? '<span class="muted small">' + esc(d.avg) + ' / ' + esc(d.scale || 10) + '</span>' : '') +
       (d.rewritten ? '<span class="muted small">rewritten once</span>' : '') + '</div>' +
       '<div class="draft-text">' + esc(d.text) + '</div>' + issueList(d) + scores +
       '<button type="button" data-use="' + k + '">Use this draft</button></div>';
