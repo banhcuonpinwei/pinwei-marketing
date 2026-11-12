@@ -372,7 +372,8 @@
   // ------------------------------------------------------------ New post: the AI card
 
   var JOB_KEY = 'pw_ai_job';
-  var SCORE_NAMES = { hook: 'Headline', brevity: 'Short and clear', voice: 'Voice', readability: 'Easy to read', cta: 'Call to action', trend_fit: 'Fits the moment',
+  var SCORE_NAMES = { hook: 'Hook (first line)', see_more: 'Earns "See more"', specific: 'Specific, sensory', no_fluff: 'No fluff',
+    info_block: 'Info block', brevity: 'Short and clear', voice: 'Voice', readability: 'Easy to read', cta: 'Call to action', trend_fit: 'Fits the moment',
     originality: 'Original', fact_tone: 'Facts said well' };
   var STEP_LABELS = { write: 'Writing 3 versions', validate: 'Checking facts and prices', review: 'Scoring', rewrite: 'Rewriting the weak ones',
     validate_rewrite: 'Checking the rewrites', save: 'Saving', revise: 'Editing' };
