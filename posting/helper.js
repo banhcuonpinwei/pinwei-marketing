@@ -11,7 +11,8 @@
   var TABS = ['compose', 'week', 'check', 'dash', 'plan'];
   /** The Check group holds both checks; #d1 and #d3 stay valid links into it. */
   var CHECK_SUBS = ['d1', 'd3'];
-  var state = { data: null, editing: null, img: null, removeImage: false, armed: null, queuePlan: '', composeBuilt: false };
+  var state = { data: null, editing: null, img: null, removeImage: false, armed: null, queuePlan: '', composeBuilt: false,
+    aiRefs: { idea_id: '', ai_draft_id: '' } };
 
   // ------------------------------------------------------------ frame
 
@@ -169,9 +170,11 @@
       '<div class="bar"><label for="who">Posted by</label><input type="text" id="who" maxlength="60" placeholder="Your name"></div>' +
       '<div class="actions"><button type="button" class="alt" id="save">Save draft</button> <button type="button" id="post">Post</button></div>' +
       '<div id="result" class="result"></div></section>' +
-      '<section class="card recent"><h2 class="card-title">Recent posts</h2><div id="recent"></div></section></div>';
+      '<div class="side"><section class="card ai-write" id="aiCompose"></section>' +
+      '<section class="card recent"><h2 class="card-title">Recent posts</h2><div id="recent"></div></section></div></div>';
     PW.remember('pw_posted_by', $('who'));
     $('text').addEventListener('input', count);
+    $('text').addEventListener('input', function () { if (window.PW_AI) window.PW_AI.composeChanged(); });
     $('ig').addEventListener('change', count);
     $('file').addEventListener('change', pickPhoto);
     $('removePhoto').addEventListener('click', function () {
@@ -185,7 +188,23 @@
     $('post').addEventListener('click', post);
     state.composeBuilt = true;
     count();
+    if (window.PW_AI) window.PW_AI.mountCompose($('aiCompose'));
   }
+
+  /** What the AI card (ai.js) may do with the composer: read and replace the text, fill the fields, keep the AI refs. */
+  window.PW_COMPOSE = {
+    getText: function () { return $('text').value; },
+    setText: function (t) { $('text').value = t; count(); },
+    fields: function () { return { topic: $('topic').value, branch: $('branch').value, content_type: $('ctype').value, goal: $('goal').value }; },
+    setFields: function (f) {
+      if (f.topic && !$('topic').value) $('topic').value = String(f.topic).slice(0, 120);
+      if (f.branch) $('branch').value = f.branch;
+      if (f.content_type && Array.prototype.some.call($('ctype').options, function (o) { return o.value === f.content_type; })) $('ctype').value = f.content_type;
+      if (f.goal && Array.prototype.some.call($('goal').options, function (o) { return o.value === f.goal; })) $('goal').value = f.goal;
+    },
+    refs: function () { return Object.assign({}, state.aiRefs); },
+    setRefs: function (r) { state.aiRefs = { idea_id: r.idea_id || '', ai_draft_id: r.ai_draft_id || '' }; },
+  };
 
   function count() {
     var n = $('text').value.length;
@@ -226,6 +245,9 @@
   /** Loads a post into the composer (null = a new post). */
   function edit(plan) {
     state.editing = plan;
+    // A post opened from the list keeps the idea and AI draft it came from; a new post starts without.
+    state.aiRefs = { idea_id: plan && plan.idea_id ? plan.idea_id : '', ai_draft_id: plan && plan.ai_draft_id ? plan.ai_draft_id : '' };
+    if (!plan && window.PW_AI) window.PW_AI.composeReset();
     state.img = null;
     state.removeImage = false;
     $('cTitle').textContent = plan ? 'Edit post ' + plan.plan_id : 'Create post';
@@ -317,6 +339,7 @@
       content_type: $('ctype').value, goal: $('goal').value,
       page: $('page').checked, ig: $('ig').checked, group: $('group').checked,
       posted_by: $('who').value, image: state.img, remove_image: state.removeImage,
+      idea_id: state.aiRefs.idea_id, ai_draft_id: state.aiRefs.ai_draft_id,
     };
   }
 
