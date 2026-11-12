@@ -21,6 +21,22 @@
 
   function usd(n) { return (Number(n) || 0).toFixed(2); }
 
+  /** The latest Apify runs: what ran, when and what it cost. Writing posts never uses Apify. */
+  function apifyRuns(ap) {
+    var runs = ap && ap.runs || [];
+    if (!runs.length) return '';
+    var when = function (t) {
+      return t ? esc(new Date(t).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : '';
+    };
+    return '<details class="ai-runs"><summary>Latest Apify runs (' + runs.length + ')</summary>' +
+      '<table><thead><tr><th>What</th><th>Started</th><th>Status</th><th class="n">Cost</th></tr></thead><tbody>' +
+      runs.map(function (r) {
+        return '<tr><td data-th="What">' + esc(r.purpose) + '</td><td data-th="Started">' + when(r.started_at) + '</td>' +
+          '<td data-th="Status">' + esc(r.status) + '</td><td data-th="Cost" class="n">' + (r.usd === null ? '' : '$' + Number(r.usd).toFixed(3)) + '</td></tr>';
+      }).join('') + '</tbody></table><p class="muted small">Only the weekly research, Research again and the competitor menus run Apify; ' +
+      'writing and rewriting posts never do. Apify may add a run\'s cost a few hours after it ends.</p></details>';
+  }
+
   // Rewrite all: the runs still going ({pipeline_ids, total, failed}), asked every 6 seconds until they end.
   var rewriting = null;
 
@@ -111,7 +127,8 @@
         : usd(ap.month_used_usd) + ' of ' + usd(ap.monthly_cap_usd) + ' USD' + (ap.cycle_start ? ' <span class="muted">(since ' + esc(ap.cycle_start) + ')</span>' : '')) +
         '</td><td data-th="Today" class="muted">no daily limit</td></tr>' : '') +
       (ap && !ap.error ? '<tr><td data-th="Spent"><b>Total</b></td><td data-th="This month"><b>' + usd(d.spend.month_used_usd + ap.month_used_usd) + ' USD</b></td><td></td></tr>' : '') +
-      '</tbody></table><p class="muted small">Today is Vietnam time. Apify counts its own billing cycle and is read every 10 minutes.</p>';
+      '</tbody></table><p class="muted small">Today is Vietnam time. Apify counts its own billing cycle and is read every 10 minutes.</p>' +
+      apifyRuns(ap);
     var pb = d.playbook;
     var playbook = '<p class="muted small">Playbook: ' + (pb ? 'updated ' + esc(new Date(pb.at).toLocaleDateString('en-GB')) + ', ' +
       (pb.applied || []).length + ' change' + ((pb.applied || []).length === 1 ? '' : 's') + '. ' + esc(pb.summary || '') +
