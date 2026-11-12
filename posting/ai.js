@@ -91,8 +91,8 @@
   }
 
   /**
-   * Two tables from one list (the buttons' index points into it): ideas made for a dated event or holiday, with the
-   * day to post, then the pool to pick from and place in your own schedule, without dates.
+   * The ideas as cards in two columns: the pool to pick from (place them in your own week) and the ideas made for a
+   * dated event or holiday. A card opens the preview: the suggested post as it would look on Facebook, then its layout.
    */
   function ideasTable() {
     var list = (data.ideas || []).filter(function (i) { return i.status !== 'Replaced'; });
@@ -100,31 +100,72 @@
     var events = [];
     var pool = [];
     list.forEach(function (i, k) { (i.event ? events : pool).push(k); });
-    var head = function (first) {
-      return '<table class="list ai-ideas"><thead><tr>' + (first ? '<th>' + first + '</th>' : '') +
-        '<th>Idea</th><th>Goal</th><th>Photo</th><th>Facts</th><th></th></tr></thead><tbody>';
+    var column = function (title, lead, keys) {
+      return '<section class="idea-col"><h3 class="ai-h">' + title + '</h3><p class="muted small">' + lead + '</p>' +
+        (keys.length ? keys.map(function (k) { return ideaCard(list[k], k); }).join('') : '<p class="muted small">None this time.</p>') + '</section>';
     };
-    return (events.length ? '<h3 class="ai-h">Events and holidays</h3><p class="muted small">Ideas made for a date: post on or before it.</p>' +
-        head('Event') + events.map(function (k) { return ideaRow(list[k], k, true); }).join('') + '</tbody></table>' : '') +
-      '<h3 class="ai-h">Ideas to pick from</h3><p class="muted small">' + pool.length + ' ideas: pick the ones you like and place them in your own week.</p>' +
-      (pool.length ? head('') + pool.map(function (k) { return ideaRow(list[k], k, false); }).join('') + '</tbody></table>' : '');
+    return '<div class="idea-board">' +
+      column('Ideas to pick from', pool.length + ' ideas. Open one to read the suggested post; place the ones you like in your own week.', pool) +
+      column('Holidays and events', 'Made for a date: post on or before it.', events) + '</div>';
   }
 
-  function ideaRow(i, k, isEvent) {
-        var missing = (i.facts_missing || []).map(function (m) { return '<div class="bad small">Missing: ' + esc(m) + '</div>'; }).join('');
-        var needed = (i.facts_needed || []).length ? '<div class="muted small">Uses: ' + esc(i.facts_needed.join(', ')) + '</div>' : '';
-        var sources = (i.sources || []).map(function (u) { return link(u); }).filter(Boolean).join(' · ');
-        return '<tr' + (i.status === 'Dismissed' ? ' class="muted"' : '') + '>' +
-          (isEvent ? '<td data-th="Event"><b>' + esc(i.event) + '</b><div class="muted small">Post ' + esc(i.suggested_at || '') + '</div></td>' : '') +
-          '<td data-th="Idea"><b>' + esc(i.title) + '</b><div>' + esc(i.hook) + '</div><div class="muted small">' + esc(i.angle) + '</div>' +
-          (i.why ? '<div class="muted small">From findings ' + esc(i.why) + (sources ? ': ' + sources : '') + '</div>' : '') + '</td>' +
-          '<td data-th="Goal">' + esc(i.goal) + '<div class="muted small">' + esc(TYPE_NAMES[i.content_type] || i.content_type) + ' · ' + esc(i.branch) + '</div></td>' +
-          '<td data-th="Photo" class="small">' + esc(i.image_brief) + '</td>' +
-          '<td data-th="Facts">' + (missing || needed || '<span class="muted small">-</span>') + '</td>' +
-          '<td class="nowrap">' +
-          (['New', 'Writing', 'Written'].indexOf(i.status) >= 0 ? '<button type="button" data-write="' + k + '">' + (i.status === 'New' ? 'Write post' : 'Open drafts') + '</button>' : '') +
-          (i.status === 'New' ? '<button type="button" class="alt" data-dismiss="' + k + '">Dismiss</button>' : '') +
-          (i.status !== 'New' ? '<span class="tag">' + esc(i.status) + '</span>' : '') + '</td></tr>';
+  function ideaCard(i, k) {
+    var state = i.status === 'New' ? '' : '<span class="tag">' + esc(i.status) + '</span>';
+    return '<button type="button" class="idea-card' + (i.status === 'Dismissed' ? ' is-off' : '') + '" data-idea="' + k + '">' +
+      (i.event ? '<span class="idea-when">' + esc(i.event) + ' · post ' + esc(i.suggested_at || '') + '</span>' : '') +
+      '<span class="idea-title">' + esc(i.title) + '</span>' +
+      '<span class="idea-hook">' + esc(i.hook) + '</span>' +
+      '<span class="idea-meta">' + esc(i.goal) + ' · ' + esc(TYPE_NAMES[i.content_type] || i.content_type) + ' · ' + esc(i.branch) +
+      ((i.facts_missing || []).length ? ' · <span class="badc">' + i.facts_missing.length + ' to check</span>' : '') + ' ' + state + '</span></button>';
+  }
+
+  /** The preview of one idea, like a post on Facebook, then its layout and what to check. Esc or Close shuts it. */
+  function openPreview(i) {
+    var old = document.getElementById('ideaPreview');
+    if (old) old.remove();
+    var text = i.sample_post || [i.hook, i.angle].filter(Boolean).join('\n\n');
+    var sources = (i.sources || []).map(function (u) { return link(u); }).filter(Boolean).join('<br>');
+    var checks = (i.facts_missing || []).map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('');
+    var wrap = document.createElement('div');
+    wrap.id = 'ideaPreview';
+    wrap.className = 'preview-wrap';
+    wrap.innerHTML = '<div class="preview" role="dialog" aria-modal="true" aria-labelledby="pvTitle">' +
+      '<div class="preview-head"><b id="pvTitle">' + esc(i.title) + '</b><button type="button" class="alt" id="pvClose">Close</button></div>' +
+      '<div class="preview-body">' +
+      '<h4 class="pv-h">Suggested post</h4>' +
+      '<article class="fb-post"><div class="fb-top"><img src="pinwei-mark.jpg" alt="" width="40" height="40"><div><b>Pin Wei</b>' +
+      '<div class="muted small">' + esc(i.event ? i.event + ' · ' + (i.suggested_at || '') : 'Any day') + ' · ' + esc(i.branch === 'All' ? 'all branches' : i.branch) + '</div></div></div>' +
+      '<div class="fb-text">' + esc(text) + '</div>' +
+      '<div class="fb-photo"><span>Photo</span>' + esc(String(i.image_brief || '').replace(/^Ảnh: /, '')) + '</div>' +
+      '<div class="fb-bar"><span>Like</span><span>Comment</span><span>Share</span></div></article>' +
+      (i.sample_post ? '' : '<p class="muted small">This idea was made before suggested posts existed: run the research again for one.</p>') +
+      '<h4 class="pv-h">Layout</h4><div class="pv-layout">' + esc(i.layout || i.angle || '') + '</div>' +
+      (checks ? '<h4 class="pv-h">Check before posting</h4><ul class="pv-checks">' + checks + '</ul>' : '') +
+      ((i.facts_needed || []).length ? '<p class="muted small">Uses Knowledge: ' + esc(i.facts_needed.join(', ')) + '</p>' : '') +
+      (i.why ? '<p class="muted small">From findings ' + esc(i.why) + (sources ? ':<br>' + sources : '') + '</p>' : '') +
+      '</div><div class="preview-foot">' +
+      (['New', 'Writing', 'Written'].indexOf(i.status) >= 0 ? '<button type="button" id="pvWrite">' + (i.status === 'New' ? 'Write 3 drafts' : 'Open drafts') + '</button>' : '') +
+      (i.status === 'New' ? '<button type="button" class="alt" id="pvDismiss">Dismiss</button>' : '<span class="tag">' + esc(i.status) + '</span>') +
+      '</div></div>';
+    document.body.appendChild(wrap);
+    var close = function () {
+      document.removeEventListener('keydown', onKey);
+      wrap.remove();
+    };
+    var onKey = function (ev) { if (ev.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    wrap.addEventListener('click', function (ev) { if (ev.target === wrap) close(); });
+    document.getElementById('pvClose').addEventListener('click', close);
+    document.getElementById('pvClose').focus();
+    if (document.getElementById('pvWrite')) {
+      document.getElementById('pvWrite').addEventListener('click', function () { close(); writeIdea(i); });
+    }
+    if (document.getElementById('pvDismiss')) {
+      twoClick(document.getElementById('pvDismiss'), 'Click again: set it aside', function () {
+        close();
+        call('ideaDismiss', { idea_id: i.idea_id }, 'Idea set aside.');
+      });
+    }
   }
 
   function findingsTable() {
@@ -166,13 +207,8 @@
       });
     }
     var ideas = (d.ideas || []).filter(function (i) { return i.status !== 'Replaced'; });
-    Array.prototype.forEach.call(box.querySelectorAll('button[data-write]'), function (b) {
-      b.addEventListener('click', function () { writeIdea(ideas[Number(b.getAttribute('data-write'))]); });
-    });
-    Array.prototype.forEach.call(box.querySelectorAll('button[data-dismiss]'), function (b) {
-      twoClick(b, 'Click again', function () {
-        call('ideaDismiss', { idea_id: ideas[Number(b.getAttribute('data-dismiss'))].idea_id }, 'Idea set aside.');
-      });
+    Array.prototype.forEach.call(box.querySelectorAll('button[data-idea]'), function (b) {
+      b.addEventListener('click', function () { openPreview(ideas[Number(b.getAttribute('data-idea'))]); });
     });
     var findings = (d.findings || []).filter(function (f) { return f.finding_id !== 'avoid'; });
     Array.prototype.forEach.call(box.querySelectorAll('button[data-rate]'), function (b) {
